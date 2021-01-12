@@ -46,10 +46,8 @@ def make_dataloader(config, dataset=None, mode='train', distributed=False, num_r
 
     # create a Dataset class object
     if dataset is None:
-        dataset = build_dataset(dataset_name=config.DATASET.DATASET_NAME,
-                                root=config.DATASET.ROOT_PATH,
-                                splits=splits,
-                                toy=config.DATASET.TOY
+        dataset = build_dataset(config=config,
+                                split=split
                             )
 
     sampler = make_data_sampler(dataset, shuffle, distributed, num_replicas, rank)
