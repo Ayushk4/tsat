@@ -56,6 +56,7 @@ class VideoTransformer(nn.Module):
         # Positional and Segment Encoding
         # TODO: shift to learnable 1D positional encoding and have different instantiations
         #       for temporal and spatial sequence.
+        # TODO: DETR adds positional encoding at every timestep (should we do the same)
         self.positional_encoding = PositionalEncoding(self.transformer_dims,
                                                     self.positional_dropout,
                                                 )
