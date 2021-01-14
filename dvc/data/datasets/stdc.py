@@ -140,9 +140,10 @@ class STDC(Dataset):
         # 2. bounding boxes per frames : 
         # 2. captions per frame :
 
-        # we have to pass a tensor that contains self.sampling_count *2 + 1 number of images
+        # we have to pass a tensor that contains self.sampling_count * 2 + 1 number of images
 
         context_frames_preprocessed = torch.stack([self.load_and_preprocess_frames(frame_path) \ 
                                     for frame_path in data_point['context_frames'])
 
 
+        # 
