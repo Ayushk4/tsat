@@ -131,6 +131,7 @@ class VideoTransformer(nn.Module):
         spat_feat_sequence = self.bb_to_spatial(spat_feat_sequence)
 
         # Positional and Segment Encoding
+        # TODO: Segment Encoding
         temp = self.positional_encoding(temp_feats)
         spat = self.positional_encoding(spat_feat_sequence) 
         
