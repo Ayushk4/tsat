@@ -96,7 +96,7 @@ class VideoTransformer(nn.Module):
 
         frames_pad_mask: BoolTensor[B, T]:
             `frames_pad_mask` provides specified elements in the key
-            to be ignored by the attention.
+            to be **ignored** by the attention.
             Given a BoolTensor is provided, the positions with the value
             of True will be ignored while the position with the value of
             False will be unchanged.
