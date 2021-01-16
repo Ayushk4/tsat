@@ -57,6 +57,13 @@ def parse_args():
 def main():
     args, config = parse_args()
 
+    if args.wandb:
+        if os.popen('git status --porcelain').read() != "":
+            print("\n\n\n==================================================\n\n")
+            print("Git commit the current code for reproductibility!")
+            print("\n\n\n==================================================\n\n")
+            raise "Git Commit Error"
+
     # initialize wandb
     wandb.init(project=config.PROJECT, name=config.RUN, config=config)
 
