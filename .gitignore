@@ -130,3 +130,6 @@ dmypy.json
 # vim files
 *.swp
 *.swo
+
+# model outputs
+outputs/
