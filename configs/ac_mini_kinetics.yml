@@ -1,0 +1,50 @@
+---
+RNG_SEED: -1
+MODULE: 'dynamic_resnet'
+GPUS: '1,2,3,4,5,6,7,8'
+NUM_WORKERS_PER_GPU: 4
+VERSION: 'version1'
+
+DATASET:
+    DATASET_NAME: 'kinetics'
+    ROOT_PATH: '/data/datasets/kinetics700_2020/'
+    TRAIN_ANNOTATIONS_PATH: 'mini/train.json' 
+    VAL_ANNOTATIONS_PATH: 'mini/val.json'
+    CLASS_TO_INDEX_FILE: 'mini/class_to_index.json'
+    TRAIN_VIDEO_RESIZED_PATH: 'train_cache'
+    VAL_VIDEO_RESIZED_PATH: 'val_cache'
+    TOY: False
+    TOY_SAMPLES: 10
+    SAMPLING_STRIDE: 2
+    TRAIN_SPLIT: 'train'
+    VAL_SPLIT: 'val'
+
+
+NETWORK:
+    BACKBONE: 'res18'
+    BACKBONE_LOAD_PRETRAINED: True
+    TEMPORAL_MLP_DIMS: 512
+    TEMPORAL_MLP_ACTIVATION: "LeakyReLU"
+    TRANSFORMER_DIMS: 512
+    TRANSFORMER_HEADS: 8
+    TRANSFORMER_ENCODER_CNT: 8
+    TRANSFORMER_DROPOUT: 0.1
+    TRANSFORMER_FEEDFORWARD_DIMS: 2048
+    POSITIONAL_DROPOUT: 0.1
+    NUM_CLASSES: 700
+    PARTIAL_PRETRAIN: False
+
+
+TRAIN:
+    BATCH_SIZE: 3
+    LR: 0.0008
+    MOMENTUM: 0.9
+    WEIGHT_DECAY: 0.01
+    OPTIMIZER: 'AdamW'
+    SHUFFLE: True
+    BEGIN_EPOCH: 0
+    END_EPOCH: 10
+
+VAL:
+    BATCH_IMAGES: 128
+    SHUFFLE: False
