@@ -21,7 +21,7 @@ _C.PROJECT = "stc"
 # Train options
 # ------------------------------------------------------------------------------------- #
 _C.TRAIN = edict()
-_C.TRAIN.BATCH_SIZE = 
+_C.TRAIN.BATCH_SIZE = 2
 _C.TRAIN.SHUFFLE = True
 _C.TRAIN.LR = -10
 _C.TRAIN.MOMENTUM = 0.9
@@ -36,7 +36,7 @@ _C.TRAIN.GRADIENT_ACCUMULATE_STEPS = 1
 # Val options
 # ------------------------------------------------------------------------------------- #
 _C.VAL = edict()
-_C.VAL.BATCH_SIZE = 
+_C.VAL.BATCH_SIZE = 2
 _C.VAL.SHUFFLE = False
 
 
@@ -45,6 +45,7 @@ _C.VAL.SHUFFLE = False
 # ------------------------------------------------------------------------------------- #
 _C.DATASET = edict()
 _C.DATASET.DATA_PATH = ""
+_C.DATASET.DATASET_NAME = ""
 
 _C.DATASET.CLASS_TO_INDEX_FILE = "" # Relative to DATASET.DATA_PATH
 _C.DATASET.TRAIN_ANNOTATIONS_PATH = "" # Relative to DATASET.DATA_PATH
@@ -102,7 +103,7 @@ def update_config(config_file):
                                 config[k][vk] = tuple(float(s) for s in vv.split(','))
                             elif vk == 'LOSS_LOGGERS':
                                 config[k][vk] = [tuple(str(s) for s in vvi.split(',')) for vvi in vv]
-                             else:
+                            else:
                                 config[k][vk] = vv
                         else:
                             raise ValueError("key {}.{} not in config.py".format(k, vk))
