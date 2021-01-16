@@ -17,8 +17,9 @@ def build_dataset(dataset_name, *args, **kwargs):
 
 def make_data_sampler(dataset, shuffle, distributed, num_replicas, rank):
     if distributed:
-        return torch.utils.data.distributed.DistributedSampler(dataset, shuffle=shuffle,
-                                                            num_replicas=num_replicas, rank=rank)
+        return torch.utils.data.distributed.DistributedSampler(dataset,
+                        shuffle=shuffle, num_replicas=num_replicas, rank=rank
+                    )
     if shuffle:
         sampler = torch.utils.data.sampler.RandomSampler(dataset)
     else:
@@ -29,7 +30,8 @@ def make_batch_data_sampler(dataset, sampler, batch_size):
     batch_sampler = torch.utils.data.sampler.BatchSampler(sampler, batch_size, drop_last=False)
     return batch_sampler
 
-def make_dataloader(config, dataset=None, mode='train', distributed=False, num_replicas=None, rank=None):
+def make_dataloader(config, dataset=None, mode='train',
+                distributed=False, num_replicas=None, rank=None):
 
     # config variables
     num_gpu = len(config.GPUS) if isinstance(config.GPUS, list) else len(config.GPUS.split(','))

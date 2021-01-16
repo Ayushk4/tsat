@@ -15,4 +15,4 @@ def collate_fn(batch):
     frames = [padding_fn(f, max_frames - n) for f,n in zip(frames, num_frames)]
 
     frames = torch.stack(frames)
-    return frames, keyframes_ixs, pad_masks
+    return frames, keyframes_ixs, pad_masks, labels
