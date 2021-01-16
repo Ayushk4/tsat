@@ -115,7 +115,8 @@ class VideoTransformer(nn.Module):
         assert frames_pad_mask.shape[1] == frames.shape[1]
 
         # Pass frames through backbone
-        # TODO: Introduce padding only in the transformer, flatten out the portion in backbone.
+        # TODO: Introduce padding only in the transformer, flatten out the portion
+        #       in backbone into 4D input for reduced computation
         frames = frames.view(-1, C, H, W)
         bb_feats = self.backbone(frames)
         
@@ -140,12 +141,15 @@ class VideoTransformer(nn.Module):
         sep_rep = self.sep.unsqueeze(1).repeat(B, 1, 1)
         input_vec = torch.cat([cls_rep, spat, sep_rep,
                             temp, sep_rep], 1).permute(1,0,2) # Shape = [<spat_seq>+<temp_seq>+3, B, feat_size]
+
+        device = input_vec.device
         tf_pad_mask = torch.cat([
-                            torch.ones((B, input_vec.shape[0] - frames_pad_mask.shape[1] - 1),dtype=torch.bool),
+                            torch.ones((B, input_vec.shape[0] - frames_pad_mask.shape[1] - 1),dtype=torch.bool).to(device),
                             frames_pad_mask,
-                            torch.ones((B, 1), dtype=torch.bool)
+                            torch.ones((B, 1), dtype=torch.bool).to(device)
                         ], 1)
         assert tf_pad_mask.shape == (input_vec.shape[1], input_vec.shape[0])
+        # TODO: Double check the pad mask (if this is wrong the model won't work)
         output_vectors = self.transformer_encoder(src=input_vec, src_key_padding_mask=tf_pad_mask) # Shape: [<spat_seq>+<temp_seq>+3, B, feat_size]
 
         # Tagger layer 
