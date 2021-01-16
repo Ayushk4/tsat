@@ -7,6 +7,7 @@ import torch
 #--------- Funcs and Classes for Datasets
 #----------------------------------------
 from datasets.kinetics import Kinetics
+from collate import collate_fn
 
 DATASET_CATALOGS = {'kinetics': Kinetics}
 
@@ -56,6 +57,8 @@ def make_dataloader(config, dataset=None, mode='train', distributed=False, num_r
     dataloader = torch.utils.data.DataLoader(dataset=dataset,
                                              batch_sampler=batch_sampler,
                                              num_workers=num_workers,
-                                             pin_memory=False)
+                                             collate_fn=collate_fn,
+                                             pin_memory=False
+                                            )
 
     return dataloader
