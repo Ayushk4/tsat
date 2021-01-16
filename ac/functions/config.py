@@ -11,11 +11,11 @@ _C.RNG_SEED = 5
 
 _C.NUM_WORKERS_PER_GPU = 1
 _C.GPUS = [0, 1, 2, 3, 4, 5, 6, 7]
-
+_C.RUN = ""
 _C.OUTPUT_PATH = ""
-
 _C.MODEL = ""
-
+_C.TASK_TYPE = "Classification"
+_C.PROJECT = "stc"
 
 # ------------------------------------------------------------------------------------- #
 # Train options
@@ -29,7 +29,8 @@ _C.TRAIN.WEIGHT_DECAY = 0.01
 _C.TRAIN.OPTIMIZER = 'AdamW'
 _C.TRAIN.BEGIN_EPOCH = 0
 _C.TRAIN.END_EPOCH = 10
-
+_C.TRAIN.CLIP_GRAD_NORM = 5.0
+_C.TRAIN.GRADIENT_ACCUMULATE_STEPS = 1
 
 # ------------------------------------------------------------------------------------- #
 # Val options
