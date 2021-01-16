@@ -22,7 +22,8 @@ class TrainMetrics():
 
         if metric_name not in self.all_metrics:
             # initialize a new metric
-            self.all_metrics[metric_name] = eval(f'Train{metric_type}Metric')(metric_value, allreduce=self.allreduce)
+            self.all_metrics[metric_name] = eval(f'Train{metric_type}Metric')(metric_value,
+                                                                            allreduce=self.allreduce)
         else:
             # update the metric
             self.all_metrics[metric_name].update(metric_value)
