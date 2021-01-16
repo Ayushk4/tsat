@@ -28,7 +28,7 @@ class TrainMetrics():
             # update the metric
             self.all_metrics[metric_name].update(metric_value)
 
-    def wandb_log(self, step):
-
-        for metric_name, metric in self.all_metrics.items(): 
-            metric.wandb_log(metric_name, step)
+    def wandb_log(self, step, use_wandb):
+        if use_wandb:
+            for metric_name, metric in self.all_metrics.items():
+                metric.wandb_log(metric_name, step)
