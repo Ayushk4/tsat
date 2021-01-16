@@ -25,7 +25,7 @@ from ac.modules.model import VideoTransformer
 #----------------------------------------
 #--------- Dataloader related imports ---
 #----------------------------------------
-from ac.data.build import make_dataloader, build_dataset
+from ac.data.build import make_dataloader
 
 #----------------------------------------
 #--------- Imports from common ----------
@@ -119,8 +119,12 @@ def train_net(args, config):
         summary_parameters(model)
 
         # dataloaders for training and test set
-        train_loader = make_dataloader(config, mode='train', distributed=False)
-        val_loader = make_dataloader(config, mode='val', distributed=False)
+        if config.DATASET.TOY:
+            train_loader = make_dataloader(config, mode='train', distributed=False)
+            val_loader = make_dataloader(config, mode='train', distributed=False)
+        else:
+            train_loader = make_dataloader(config, mode='train', distributed=False)
+            val_loader = make_dataloader(config, mode='val', distributed=False)
 
     # set up the initial learning rate
     initial_lr = config.TRAIN.LR
@@ -168,4 +172,6 @@ def train_net(args, config):
         val_metrics=val_metrics,
         rank=rank if args.dist else None,
         batch_end_callbacks=batch_end_callbacks,
-        epoch_end_callbacks=epoch_end_callbacks)
+        epoch_end_callbacks=epoch_end_callbacks,
+        use_wandb=args.wandb
+        )
