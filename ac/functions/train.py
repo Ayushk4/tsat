@@ -81,7 +81,7 @@ def train_net(args, config):
         config.GPUS = str(local_rank)
 
         # initialize the model and put it to GPU
-        model = eval(config.MODULE)(config=config)
+        model = eval(config.MODEL)(config=config)
         model = model.cuda()
 
         # wrap the model using torch distributed data parallel
@@ -104,7 +104,7 @@ def train_net(args, config):
         print(f"config.GPUS = {config.GPUS}")
 
         # initialize the model and put is to GPU
-        model = eval(config.MODULE)(config=config.NETWORK)
+        model = eval(config.MODEL)(config=config)
 
         if args.data_parallel:
             model = model.cuda()
