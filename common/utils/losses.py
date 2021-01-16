@@ -1,12 +1,12 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-task_to_loss = {"Classification": nn.nn.CrossEntropyLoss()}
+CEloss = nn.CrossEntropyLoss()
+task_to_loss = {"Classification": CEloss}
 
 def calculate_loss_and_accuracy(criterion, outputs, labels):
 
-    loss = criterion(outputs, labels)
+    loss = task_to_loss[criterion](outputs, labels)
 
     # calculate the accuracy here
     predicted = torch.argmax(outputs.data, 1)

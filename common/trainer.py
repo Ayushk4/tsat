@@ -4,8 +4,8 @@ from collections import namedtuple
 import torch
 import wandb
 from prettytable import PrettyTable
-from utils.validations import do_validation
-from utils.losses import calculate_loss_and_accuracy
+from .utils.validations import do_validation
+from .utils.losses import calculate_loss_and_accuracy
 
 try:
     from apex import amp
@@ -66,11 +66,13 @@ def train(config,
           rank,
           batch_end_callbacks,
           epoch_end_callbacks,
+          use_wandb
         ):
 
+    assert type(use_wandb) == bool
     # TODO
     # fp16=config.TRAIN.fp16 
-    clip_grad_norm = config.TRAIN.CLIP_GRAD_NORM
+    # clip_grad_norm = config.TRAIN.CLIP_GRAD_NORM
     # TODO: Add Gradient
     # gradient_accumulate_steps = config.TRAIN.GRADIENT_ACCUMULATE_STEPS
     # assert isinstance(gradient_accumulate_steps, int) and gradient_accumulate_steps >= 1
@@ -94,12 +96,10 @@ def train(config,
 
         # training
         for nbatch, batch in enumerate(train_loader):
-            global_steps = len(train_loader) * epoch + nbatch
-
             # transfer data to GPU
-            images, labels = to_cuda(batch)
+            frames, keyframes_ixs, pad_masks, labels = to_cuda(batch)
 
-            outputs = net(images)
+            outputs = net(frames, key_frame_idx, frames_pad_mask)
             loss, accuracy = calculate_loss_and_accuracy(config.TASK_TYPE, outputs, labels)
 
             # store the obtained metrics
@@ -140,14 +140,12 @@ def train(config,
         val_acc = do_validation(config, net, val_loader, policy_net=policy_net)
         val_metrics.store('val_accuracy', val_acc, 'Accuracy')
 
-        # Log the optimizer stats -- LR
-        for i, param_group in enumerate(optimizer.param_groups):
-            wandb.log({f'LR_{i}': param_group['lr']}, step=epoch)
 
         # Log both the training and validation metrics
-        train_metrics.wandb_log(epoch)
-        val_metrics.wandb_log(epoch)
-        wandb.log({'Epoch Time':end_time}, step=epoch)
+        train_metrics.wandb_log(epoch, use_wandb)
+        val_metrics.wandb_log(epoch, use_wandb)
+        if use_wandb:
+            wandb.log({'Epoch Time':end_time}, step=epoch)
 
         # print the validation accuracy
         print('\n-----------------')
@@ -160,4 +158,6 @@ def train(config,
         print(table)
 
         if epoch_end_callbacks is not None:
-            _multiple_callbacks(epoch_end_callbacks, rank=rank if rank is not None else 0, epoch=epoch, net=net, optimizer=optimizer, policy_net=policy_net, policy_optimizer=policy_optimizer, policy_decisions=policy_decisions, policy_max=policy_max, training_strategy=config.NETWORK.TRAINING_STRATEGY)
+            _multiple_callbacks(epoch_end_callbacks, rank=rank if rank is not None else 0,
+                                epoch=epoch, net=net, optimizer=optimizer
+                            )
