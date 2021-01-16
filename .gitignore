@@ -133,3 +133,6 @@ dmypy.json
 
 # model outputs
 outputs/
+
+# wandb
+wandb
