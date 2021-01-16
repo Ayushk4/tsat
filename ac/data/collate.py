@@ -1,8 +1,7 @@
 import torch
-import torchvision
 
-C_,H_,W_ = 3,224,224
-pad_image = torch.zeros(1,C_,H_,W_)
+C_, H_, W_ = 3, 224, 224
+pad_image = torch.zeros(1, C_, H_, W_)
 padding_fn = lambda x, n: torch.cat([x, pad_image.expand(n, C_, H_, W_)])
 
 def collate_fn(batch):
