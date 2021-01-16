@@ -6,8 +6,8 @@ import torch
 #----------------------------------------
 #--------- Funcs and Classes for Datasets
 #----------------------------------------
-from datasets.kinetics import Kinetics
-from collate import collate_fn
+from .datasets.kinetics import Kinetics
+from .collate import collate_fn
 
 DATASET_CATALOGS = {'kinetics': Kinetics}
 
@@ -49,8 +49,9 @@ def make_dataloader(config, dataset=None, mode='train',
 
     # create a Dataset class object
     if dataset is None:
-        dataset = build_dataset(config=config,
-                                split=split
+        dataset = build_dataset(config.DATASET.DATASET_NAME,
+                                config=config,
+                                split=mode
                             )
 
     sampler = make_data_sampler(dataset, shuffle, distributed, num_replicas, rank)
