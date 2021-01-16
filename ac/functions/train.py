@@ -155,6 +155,9 @@ def train_net(args, config):
     # epoch end callbacks
     epoch_end_callbacks = [Checkpoint(config, val_metrics)]
 
+    if args.wandb:
+        wandb.watch(model, log='all')
+
     # At last call the training function from trainer
     train(config=config,
         net=model,
