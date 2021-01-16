@@ -17,10 +17,11 @@ Kinetics Format: Json file
 
 
 import torch
-import torch.utils.data.Dataset as Dataset
+from torch.utils.data import Dataset
 import torchvision
 import numpy as np
-
+import os
+import json
 
 class Kinetics(Dataset):
 
