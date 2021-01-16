@@ -29,8 +29,8 @@ _C.TRAIN.WEIGHT_DECAY = 0.01
 _C.TRAIN.OPTIMIZER = 'AdamW'
 _C.TRAIN.BEGIN_EPOCH = 0
 _C.TRAIN.END_EPOCH = 10
-_C.TRAIN.CLIP_GRAD_NORM = 5.0
-_C.TRAIN.GRADIENT_ACCUMULATE_STEPS = 1
+# _C.TRAIN.CLIP_GRAD_NORM = 5.0
+# _C.TRAIN.GRADIENT_ACCUMULATE_STEPS = 1
 
 # ------------------------------------------------------------------------------------- #
 # Val options

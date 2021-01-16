@@ -1,15 +1,15 @@
 ---
 RNG_SEED: -1
-MODULE: 'dynamic_resnet'
 GPUS: '1,2,3,4,5,6,7,8'
 NUM_WORKERS_PER_GPU: 4
-VERSION: 'version1'
+RUN: 'ac_vid_trans'
 OUTPUT_PATH: '/workspace/ayushk4/tsat/outputs/'
 MODEL: 'VideoTransformer'
+TASK_TYPE: 'Classification'
 
 DATASET:
     DATASET_NAME: 'kinetics'
-    ROOT_PATH: '/data/datasets/kinetics700_2020/'
+    DATA_PATH: '/data/datasets/kinetics700_2020/'
     TRAIN_ANNOTATIONS_PATH: 'mini/train.json' 
     VAL_ANNOTATIONS_PATH: 'mini/val.json'
     CLASS_TO_INDEX_FILE: 'mini/class_to_index.json'
@@ -39,7 +39,7 @@ NETWORK:
 
 TRAIN:
     BATCH_SIZE: 10
-    LR: 0.0008
+    LR: 0.0001
     MOMENTUM: 0.9
     WEIGHT_DECAY: 0.01
     OPTIMIZER: 'AdamW'
