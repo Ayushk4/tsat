@@ -11,7 +11,7 @@ def collate_fn(batch):
     keyframes_ixs = torch.LongTensor([n//2 for n in num_frames])
 
     max_frames = max(num_frames)
-    pad_masks = [[False] * n + [True] * (max_frames - n) for n in num_frames]
+    pad_masks = torch.BoolTensor([[False] * n + [True] * (max_frames - n) for n in num_frames])
     frames = [padding_fn(f, max_frames - n) for f,n in zip(frames, num_frames)]
 
     frames = torch.stack(frames)
