@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import numpy as np
 
-metrics_supported = ["Classification"]
+tasks_supported = ["Classification"]
 
 def to_cuda(batch):
     batch = list(batch)
