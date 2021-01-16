@@ -4,6 +4,8 @@ MODULE: 'dynamic_resnet'
 GPUS: '1,2,3,4,5,6,7,8'
 NUM_WORKERS_PER_GPU: 4
 VERSION: 'version1'
+OUTPUT_PATH: '/workspace/ayushk4/tsat/outputs/'
+MODEL: 'VideoTransformer'
 
 DATASET:
     DATASET_NAME: 'kinetics'
@@ -24,7 +26,7 @@ NETWORK:
     BACKBONE: 'res18'
     BACKBONE_LOAD_PRETRAINED: True
     TEMPORAL_MLP_DIMS: 512
-    TEMPORAL_MLP_ACTIVATION: "LeakyReLU"
+    TEMPORAL_MLP_ACTIVATION: 'LeakyReLU'
     TRANSFORMER_DIMS: 512
     TRANSFORMER_HEADS: 8
     TRANSFORMER_ENCODER_CNT: 8
@@ -36,7 +38,7 @@ NETWORK:
 
 
 TRAIN:
-    BATCH_SIZE: 3
+    BATCH_SIZE: 10
     LR: 0.0008
     MOMENTUM: 0.9
     WEIGHT_DECAY: 0.01
@@ -46,5 +48,5 @@ TRAIN:
     END_EPOCH: 10
 
 VAL:
-    BATCH_IMAGES: 128
+    BATCH_SIZE: 10
     SHUFFLE: False

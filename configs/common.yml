@@ -3,9 +3,10 @@ RNG_SEED: -1
 MODULE: 'dynamic_resnet'
 GPUS: '1,2,3,4,5,6,7,8'
 NUM_WORKERS_PER_GPU: 4
-VERSION: 'version1'
+RUN: 'ac_vid_trans'
 OUTPUT_PATH: '/workspace/ayushk4/tsat/outputs/'
 MODEL: 'VideoTransformer'
+TASK_TYPE: 'Classification'
 
 DATASET:
     DATASET_NAME: 'kinetics'
@@ -38,7 +39,7 @@ NETWORK:
 
 
 TRAIN:
-    BATCH_SIZE: 3
+    BATCH_SIZE: 10
     LR: 0.0008
     MOMENTUM: 0.9
     WEIGHT_DECAY: 0.01
@@ -46,7 +47,9 @@ TRAIN:
     SHUFFLE: True
     BEGIN_EPOCH: 0
     END_EPOCH: 10
+    CLIP_GRAD_NORM: 5.0
+    GRADIENT_ACCUMULATE_STEPS: 1
 
 VAL:
-    BATCH_IMAGES: 128
+    BATCH_SIZE: 10
     SHUFFLE: False
