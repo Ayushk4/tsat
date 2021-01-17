@@ -2,4 +2,5 @@
 
 python ./scripts/launch.py \
     --nproc_per_node "$1" \
-    "$2" --cfg "$3" --model-dir "$4"
+    "$2" --cfg "$3" --model-dir "$4" --run "$5" \
+	--wandb "$6"
