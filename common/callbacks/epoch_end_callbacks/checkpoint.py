@@ -16,7 +16,7 @@ class Checkpoint():
         self.save_path = self.set_up_logging_dir()
 
     def set_up_logging_dir(self):
-        ckpt_dir_path = os.path.join('ckpts', self.config.VERSION)
+        ckpt_dir_path = os.path.join('ckpts', self.config.RUN)
         Path(ckpt_dir_path).mkdir(parents=True, exist_ok=True)
         return ckpt_dir_path
 
