@@ -26,10 +26,13 @@ class TrainAccuracyMetric():
         if self.allreduce:
             gpus = torch.tensor(1.0).cuda()
 
-            distributed.all_reduce(self.current_value, op=distributed.ReduceOP.SUM)
-            distributed.all_reduce(gpus, op=distributed.ReduceOP.SUM)
+            # convert to tensor
+            cv = torch.tensor(self.current_value).cuda()
 
-            self.current_value = self.current_value.item()/gpus.item()
+            distributed.all_reduce(cv, op=distributed.ReduceOp.SUM)
+            distributed.all_reduce(gpus, op=distributed.ReduceOp.SUM)
+
+            self.current_value = cv.item()/gpus.item()
 
         self.iterations += 1
 
@@ -68,10 +71,13 @@ class ValAccuracyMetric():
         if self.allreduce:
             gpus = torch.tensor(1.0).cuda()
 
-            distributed.all_reduce(self.current_value, op=distributed.ReduceOP.SUM)
-            distributed.all_reduce(gpus, op=distributed.ReduceOP.SUM)
+            # convert to tensor
+            cv = torch.tensor(self.current_value).cuda()
 
-            self.current_value = self.current_value.item()/gpus.item()
+            distributed.all_reduce(cv, op=distributed.ReduceOp.SUM)
+            distributed.all_reduce(gpus, op=distributed.ReduceOp.SUM)
+
+            self.current_value = cv.item()/gpus.item()
 
         if self.current_value > self.best_value:
             self.best_value = self.current_value
