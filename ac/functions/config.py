@@ -70,6 +70,7 @@ _C.DATASET.VAL_SPLIT = "val"
 _C.NETWORK = edict()
 _C.NETWORK.BACKBONE = ""
 _C.NETWORK.BACKBONE_LOAD_PRETRAINED = True
+_C.NETWORK.PRETRAINED_MODEL = ''
 
 _C.NETWORK.TEMPORAL_MLP_DIMS = 512
 _C.NETWORK.TEMPORAL_MLP_ACTIVATION = "" # The code will prepend `torch.nn.` and do eval over the string.

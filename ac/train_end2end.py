@@ -4,9 +4,9 @@ import argparse
 import torch
 import subprocess
 
-from ac.function.config import config, update_config
-from ac.function.train import train_net
-from ac.function.test import test_net
+from ac.functions.config import config, update_config
+from ac.functions.train import train_net
+#from ac.functions.test import test_net
 
 import wandb
 
@@ -26,7 +26,7 @@ def parse_args():
     assert args.wandb.lower() in ['t', 'f', 'y', 'n', "yes", "no", "true", "false", ]
     if args.wandb[0] in ['t', 'y']:
         args.wandb = True
-    elif args.wandb[0] == ['f', 'n']:
+    elif args.wandb[0] in ['f', 'n']:
         args.wandb = False
     else:
         raise NotImplementedError
@@ -64,10 +64,10 @@ def main():
             print("\n\n\n==================================================\n\n")
             raise "Git Commit Error"
 
-    # initialize wandb
-    wandb.init(project=config.PROJECT, name=config.RUN, config=config)
+        # initialize wandb
+        wandb.init(project=config.PROJECT, name=config.RUN, config=config)
 
-    rank, model = train_net(args, config)
+    train_net(args, config)
 
     if args.do_test and (rank is None or rank == 0):
         test_net(args, config)
