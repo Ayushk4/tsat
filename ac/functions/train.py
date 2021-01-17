@@ -92,11 +92,19 @@ def train_net(args, config):
             print("summarizing the main network")
             summary_parameters(model)
 
-        # dataloaders for training, val and test set
-        train_loader = make_dataloader(config, mode='train', distributed=True,
-                                        num_replicas=world_size, rank=rank)
-        val_loader = make_dataloader(config, mode='val', distributed=True,
-                                        num_replicas=world_size, rank=rank)
+        # dataloaders for training and test set
+        if config.DATASET.TOY:
+            train_loader = make_dataloader(config, mode='train', distributed=True,
+                                            num_replicas=world_size, rank=rank)
+            val_loader = make_dataloader(config, mode='train', distributed=True,
+                                            num_replicas=world_size, rank=rank)
+
+            assert train_loader.dataset.dataset == val_loader.dataset.dataset
+        else:
+            train_loader = make_dataloader(config, mode='train', distributed=True,
+                                            num_replicas=world_size, rank=rank)
+            val_loader = make_dataloader(config, mode='val', distributed=True,
+                                            num_replicas=world_size, rank=rank)
 
     else:
         # set CUDA device in env variables
@@ -146,7 +154,7 @@ def train_net(args, config):
                         loading_method=config.NETWORK.PRETRAINED_LOADING_METHOD)
 
     # Set up the metrics
-    train_metrics = TrainMetrics(config, allreduce=False)
+    train_metrics = TrainMetrics(config, allreduce=args.dist)
     val_metrics = ValMetrics(config, allreduce=args.dist)
 
     # Set up the callbacks
