@@ -78,7 +78,8 @@ def train(config,
     # assert isinstance(gradient_accumulate_steps, int) and gradient_accumulate_steps >= 1
 
     for epoch in range(config.TRAIN.BEGIN_EPOCH, config.TRAIN.END_EPOCH):
-        print('PROGRESS: %.2f%%' % (100.0 * epoch / config.TRAIN.END_EPOCH))
+        if rank == 0:
+            print('PROGRESS: %.2f%%' % (100.0 * epoch / config.TRAIN.END_EPOCH))
 
         # set epoch as random seed of sampler while distributed training
         # TODO:
@@ -99,7 +100,7 @@ def train(config,
             # transfer data to GPU
             frames, keyframes_ixs, pad_masks, labels = to_cuda(batch)
 
-            outputs = net(frames, key_frame_idx, frames_pad_mask)
+            outputs = net(frames, keyframes_ixs, pad_masks)
             loss, accuracy = calculate_loss_and_accuracy(config.TASK_TYPE, outputs, labels)
 
             # store the obtained metrics
@@ -121,7 +122,7 @@ def train(config,
             #     _multiple_callbacks(batch_end_callbacks, batch_end_params)
 
 
-            if nbatch % 100 == 0:
+            if nbatch % 100 == 0 and rank == 0:
                 # Print accuracy and loss
                 print('\n---------------------------------')
                 print(f'[Rank: {rank if rank is not None else 0}], [Epoch: {epoch}/{config.TRAIN.END_EPOCH}], [Batch: {nbatch}/{len(train_loader)}]')
@@ -134,10 +135,11 @@ def train(config,
 
         # update end time
         end_time = time.time() - end_time
-        print(f'Epoch {epoch} finished in {end_time}s!!')
+        if rank == 0:
+            print(f'Epoch {epoch} finished in {end_time}s!!')
 
         # update validation metrics
-        val_acc = do_validation(config, net, val_loader, policy_net=policy_net)
+        val_acc = do_validation(config, net, val_loader)
         val_metrics.store('val_accuracy', val_acc, 'Accuracy')
 
 
@@ -148,14 +150,15 @@ def train(config,
             wandb.log({'Epoch Time':end_time}, step=epoch)
 
         # print the validation accuracy
-        print('\n-----------------')
-        print('Validation Metrics')
-        print('-----------------\n')
+        if rank == 0:
+            print('\n-----------------')
+            print('Validation Metrics')
+            print('-----------------\n')
 
-        table = PrettyTable(['Metric', 'Current Value', 'Best Value'])
-        for metric_name, metric in val_metrics.all_metrics.items():
-            table.add_row([metric_name, metric.current_value, metric.best_value if 'best_value' in dir(metric) else '----'])
-        print(table)
+            table = PrettyTable(['Metric', 'Current Value', 'Best Value'])
+            for metric_name, metric in val_metrics.all_metrics.items():
+                table.add_row([metric_name, metric.current_value, metric.best_value if 'best_value' in dir(metric) else '----'])
+            print(table)
 
         if epoch_end_callbacks is not None:
             _multiple_callbacks(epoch_end_callbacks, rank=rank if rank is not None else 0,
