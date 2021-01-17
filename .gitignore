@@ -136,3 +136,6 @@ outputs/
 
 # wandb
 wandb
+
+# checkpoints
+ckpts/*
