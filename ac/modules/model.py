@@ -72,8 +72,13 @@ class VideoTransformer(nn.Module):
 
         # [CLS] and [SEP] learnable vectors
         # TODO: Better Initialization
-        self.cls = nn.Parameter(torch.rand(1, self.transformer_dims))
-        self.sep = nn.Parameter(torch.rand(1, self.transformer_dims))
+        self.cls = nn.Parameter(torch.rand(1, 1, self.transformer_dims))
+        self.sep = nn.Parameter(torch.rand(1, 1, self.transformer_dims))
+        self.end = nn.Parameter(torch.rand(1, 1, self.transformer_dims))
+        
+        # Segment Embeddings: [SPAT] and [TEMP]
+        self.spat_seg_emb = nn.Parameter(torch.rand(1, 1, self.transformer_dims))
+        self.temp_seg_emb = nn.Parameter(torch.rand(1, 1, self.transformer_dims))
 
         # Tagging layer
         self.output_tagger = nn.Linear(self.transformer_dims, self.num_classes)
@@ -131,22 +136,32 @@ class VideoTransformer(nn.Module):
         spat_feat_sequence = spat_feat_grid.view(B, C_, H_ * W_).permute(0,2,1)
         spat_feat_sequence = self.bb_to_spatial(spat_feat_sequence)
 
-        # Positional and Segment Encoding
-        # TODO: Segment Encoding
+        # Calculate the Positional Encodings
+        # Actually, the positional encoding is already added in the following function call
         temp = self.positional_encoding(temp_feats)
-        spat = self.positional_encoding(spat_feat_sequence) 
+        spat = self.positional_encoding(spat_feat_sequence)
         
-        # Transformer
-        cls_rep = self.cls.unsqueeze(1).repeat(B, 1, 1)
-        sep_rep = self.sep.unsqueeze(1).repeat(B, 1, 1)
+        # Expand the segment embeddings
+        spat_seg_emb = self.spat_seg_emb.expand(B, temp.size(1), self.transformer_dims)
+        temp_seg_emb = self.temp_seg_emb.expand(B, spat.size(1), self.transformer_dims)
+        
+        # Add the segment embeddings to temporal and spatial sequence
+        temp += temp_seg_emb
+        spat += spat_seg_emb
+        
+        # Expand the token dimensions
+        cls_rep = self.cls.expand(B, 1, self.transformer_dims)
+        sep_rep = self.sep.expand(B, 1, self.transformer_dims)
+        end_rep = self.end.expand(B, 1, self.transformer_dims)
+        
         input_vec = torch.cat([cls_rep, spat, sep_rep,
-                            temp, sep_rep], 1).permute(1,0,2) # Shape = [<spat_seq>+<temp_seq>+3, B, feat_size]
+                            temp, end_rep], 1).permute(1,0,2) # Shape = [<spat_seq>+<temp_seq>+3, B, feat_size]
 
         device = input_vec.device
         tf_pad_mask = torch.cat([
-                            torch.ones((B, input_vec.shape[0] - frames_pad_mask.shape[1] - 1),dtype=torch.bool).to(device),
+                            torch.zeros((B, input_vec.shape[0] - frames_pad_mask.shape[1] - 1),dtype=torch.bool).to(device),
                             frames_pad_mask,
-                            torch.ones((B, 1), dtype=torch.bool).to(device)
+                            torch.zeros((B, 1), dtype=torch.bool).to(device)
                         ], 1)
         assert tf_pad_mask.shape == (input_vec.shape[1], input_vec.shape[0])
         # TODO: Double check the pad mask (if this is wrong the model won't work)
