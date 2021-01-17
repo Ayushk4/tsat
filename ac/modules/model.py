@@ -142,8 +142,8 @@ class VideoTransformer(nn.Module):
         spat = self.positional_encoding(spat_feat_sequence)
         
         # Expand the segment embeddings
-        spat_seg_emb = self.spat_seg_emb.expand(B, temp.size(1), self.transformer_dims)
-        temp_seg_emb = self.temp_seg_emb.expand(B, spat.size(1), self.transformer_dims)
+        temp_seg_emb = self.temp_seg_emb.expand(B, temp.size(1), self.transformer_dims)
+        spat_seg_emb = self.spat_seg_emb.expand(B, spat.size(1), self.transformer_dims)
         
         # Add the segment embeddings to temporal and spatial sequence
         temp += temp_seg_emb
