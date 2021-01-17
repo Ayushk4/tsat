@@ -21,17 +21,17 @@ def to_cuda(batch):
 
 def do_validation(config, net, val_loader):
     net.eval()
-    correct_instances = 0
-    total_instances = 0
+    correct_instances = 0.0
+    total_instances = 0.0
     task_type = config.TASK_TYPE
-    assert task_type in metrics_supported
+    assert task_type in tasks_supported
 
     with torch.no_grad():
         for nbatch, batch in enumerate(val_loader):
-            images, labels = to_cuda(batch)
+            frames, keyframe_ixs, pad_masks, labels = to_cuda(batch)
 
             # Forward pass
-            outputs = net(images)
+            outputs = net(frames, keyframe_ixs, pad_masks)
 
             if task_type == "Classification":
                 # calculate the accuracy
@@ -42,4 +42,4 @@ def do_validation(config, net, val_loader):
         if task_type == "Classification":
             val_metrics = (100.0 * correct_instances) / total_instances
 
-        return val_acc
+        return val_metrics
