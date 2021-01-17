@@ -45,7 +45,7 @@ TRAIN:
     OPTIMIZER: 'AdamW'
     SHUFFLE: True
     BEGIN_EPOCH: 0
-    END_EPOCH: 50
+    END_EPOCH: 10
 
 VAL:
     BATCH_SIZE: 40
