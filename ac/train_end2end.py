@@ -65,7 +65,8 @@ def main():
             raise "Git Commit Error"
 
         # initialize wandb
-        wandb.init(entity="Ayushk4", project=config.PROJECT, name=config.RUN, config=config)
+        if not args.dist or rank == 0:
+            wandb.init(entity="Ayushk4", project=config.PROJECT, name=config.RUN, config=config)
 
     train_net(args, config)
 
