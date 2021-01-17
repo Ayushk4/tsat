@@ -1,0 +1,11 @@
+conda create --name tsat python=3.8
+conda activate tsat
+
+conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
+conda install av -c conda-forge # For Reading Videos
+
+pip install wandb
+pip install easydict
+pip install prettytable
+conda install -c anaconda ipykernel
+python -m ipykernel install --user --name=tsat 

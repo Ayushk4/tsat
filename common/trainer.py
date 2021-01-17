@@ -2,13 +2,17 @@ import os
 import time
 from collections import namedtuple
 import torch
+import wandb
+from prettytable import PrettyTable
+from .utils.validations import do_validation
+from .utils.losses import calculate_loss_and_accuracy
 
 try:
     from apex import amp
     from apex.amp import _amp_state
 except ImportError:
     pass
-    #raise ImportError("Please install apex from https://www.github.com/nvidia/apex if you want to use fp16.")
+    # raise ImportError("Please install apex from https://www.github.com/nvidia/apex if you want to use fp16.")
 
 # Parameter to pass to batch_end_callback
 BatchEndParam = namedtuple('BatchEndParams',
@@ -52,7 +56,6 @@ def to_cuda(batch):
 
     return batch
 
-
 def train(config,
           net,
           optimizer,
@@ -63,14 +66,16 @@ def train(config,
           rank,
           batch_end_callbacks,
           epoch_end_callbacks,
-          ):
+          use_wandb
+        ):
 
+    assert type(use_wandb) == bool
     # TODO
     # fp16=config.TRAIN.fp16 
-    # clip_grad_norm= config.TRAIN.CLIP_GRAD_NORM
+    # clip_grad_norm = config.TRAIN.CLIP_GRAD_NORM
+    # TODO: Add Gradient
     # gradient_accumulate_steps = config.TRAIN.GRADIENT_ACCUMULATE_STEPS
-
-    assert isinstance(gradient_accumulate_steps, int) and gradient_accumulate_steps >= 1
+    # assert isinstance(gradient_accumulate_steps, int) and gradient_accumulate_steps >= 1
 
     for epoch in range(config.TRAIN.BEGIN_EPOCH, config.TRAIN.END_EPOCH):
         print('PROGRESS: %.2f%%' % (100.0 * epoch / config.TRAIN.END_EPOCH))
@@ -86,111 +91,73 @@ def train(config,
         # set net to train mode
         net.train()
 
-        # clear the paramter gradients
-        # optimizer.zero_grad()
-
         # init end time
         end_time = time.time()
 
         # training
         for nbatch, batch in enumerate(train_loader):
-            global_steps = len(train_loader) * epoch + nbatch
-            os.environ['global_steps'] = str(global_steps)
-
-            # record time
-            data_in_time = time.time() - end_time
-
             # transfer data to GPU
-            data_transfer_time = time.time()
-            batch = to_cuda(batch)
-            data_transfer_time = time.time() - data_transfer_time
+            frames, keyframes_ixs, pad_masks, labels = to_cuda(batch)
 
-            # forward
-            forward_time = time.time()
-            outputs, loss = net(*batch)
-            loss = loss.mean()
-            if gradient_accumulate_steps > 1:
-                loss = loss / gradient_accumulate_steps
-            forward_time = time.time() - forward_time
+            outputs = net(frames, key_frame_idx, frames_pad_mask)
+            loss, accuracy = calculate_loss_and_accuracy(config.TASK_TYPE, outputs, labels)
 
-            # backward
-            backward_time = time.time()
-            if fp16:
-                with amp.scale_loss(loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
-            else:
-                loss.backward()
+            # store the obtained metrics
+            train_metrics.store('training_loss', loss.item(), 'Loss')
+            train_metrics.store('training_accuracy', accuracy, 'Accuracy')
 
-            backward_time = time.time() - backward_time
+            # clear the gradients
+            optimizer.zero_grad()
 
-            optimizer_time = time.time()
-            if (global_steps + 1) % gradient_accumulate_steps == 0:
-                # step LR scheduler
-                if lr_scheduler is not None and not isinstance(lr_scheduler,
-                                                               torch.optim.lr_scheduler.ReduceLROnPlateau):
-                    lr_scheduler.step()
+            # backward time
+            loss.backward()
 
-                # clip gradient
-                if clip_grad_norm > 0:
-                    if fp16:
-                        total_norm = torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer),
-                                                                    clip_grad_norm)
-                    else:
-                        total_norm = torch.nn.utils.clip_grad_norm_(net.parameters(),
-                                                                    clip_grad_norm)
-                    # TODO: Wandb
-                    # if writer is not None:
-                    #     writer.add_scalar(tag='grad-para/Total-Norm',
-                    #                       scalar_value=float(total_norm),
-                    #                       global_step=global_steps)
-
-                optimizer.step()
-                # clear the parameter gradients
-                optimizer.zero_grad()
-            optimizer_time = time.time() - optimizer_time
-
-            # update metric
-            metric_time = time.time()
-            # TODO: update this for the different metrics used in the DVC task
-            train_metrics.update(outputs)
-
-            # TODO: Switch to Wandb
-            # if writer is not None:
-            #     with torch.no_grad():
-            #         for group_i, param_group in enumerate(optimizer.param_groups):
-            #             writer.add_scalar(tag='Initial-LR/Group_{}'.format(group_i),
-            #                               scalar_value=param_group['initial_lr'],
-            #                               global_step=global_steps)
-            #             writer.add_scalar(tag='LR/Group_{}'.format(group_i),
-            #                               scalar_value=param_group['lr'],
-            #                               global_step=global_steps)
-            #         writer.add_scalar(tag='Train-Loss',
-            #                           scalar_value=float(loss.item()),
-            #                           global_step=global_steps)
-            #         name, value = metrics.get()
-            #         for n, v in zip(name, value):
-            #             writer.add_scalar(tag='Train-' + n,
-            #                               scalar_value=v,
-            #                               global_step=global_steps)
-
-            metric_time = time.time() - metric_time
+            # optimizer time
+            optimizer.step()
 
             # execute batch_end_callbacks
-            if batch_end_callbacks is not None:
-                batch_end_params = BatchEndParam(epoch=epoch, nbatch=nbatch, add_step=True, rank=rank,
-                                                 data_in_time=data_in_time, data_transfer_time=data_transfer_time,
-                                                 forward_time=forward_time, backward_time=backward_time,
-                                                 optimizer_time=optimizer_time, metric_time=metric_time,
-                                                 eval_metric=metrics, locals=locals())
-                _multiple_callbacks(batch_end_callbacks, batch_end_params)
+            # if batch_end_callbacks is not None:
+            #     batch_end_params = BatchEndParam(epoch=epoch, nbatch=nbatch, add_step=True, rank=rank)
+            #     _multiple_callbacks(batch_end_callbacks, batch_end_params)
 
-            # update end time
-            end_time = time.time()
 
-        # excute epoch_end_callbacks
-        # TODO: config.VALIDATION.VALID_EVERY_EPOCH
-        # if validation_monitor is not None:
-        #     validation_monitor(epoch, net, optimizer, writer)
+            if nbatch % 100 == 0:
+                # Print accuracy and loss
+                print('\n---------------------------------')
+                print(f'[Rank: {rank if rank is not None else 0}], [Epoch: {epoch}/{config.TRAIN.END_EPOCH}], [Batch: {nbatch}/{len(train_loader)}]')
+                print('-----------------------------------\n')
+
+                table = PrettyTable(['Metric', 'Value'])
+                for metric_name, metric in train_metrics.all_metrics.items():
+                    table.add_row([metric_name, metric.current_value])
+                print(table)
+
+        # update end time
+        end_time = time.time() - end_time
+        print(f'Epoch {epoch} finished in {end_time}s!!')
+
+        # update validation metrics
+        val_acc = do_validation(config, net, val_loader, policy_net=policy_net)
+        val_metrics.store('val_accuracy', val_acc, 'Accuracy')
+
+
+        # Log both the training and validation metrics
+        train_metrics.wandb_log(epoch, use_wandb)
+        val_metrics.wandb_log(epoch, use_wandb)
+        if use_wandb:
+            wandb.log({'Epoch Time':end_time}, step=epoch)
+
+        # print the validation accuracy
+        print('\n-----------------')
+        print('Validation Metrics')
+        print('-----------------\n')
+
+        table = PrettyTable(['Metric', 'Current Value', 'Best Value'])
+        for metric_name, metric in val_metrics.all_metrics.items():
+            table.add_row([metric_name, metric.current_value, metric.best_value if 'best_value' in dir(metric) else '----'])
+        print(table)
+
         if epoch_end_callbacks is not None:
-            _multiple_callbacks(epoch_end_callbacks, epoch, net, optimizer,
-                         validation_monitor=validation_monitor)
+            _multiple_callbacks(epoch_end_callbacks, rank=rank if rank is not None else 0,
+                                epoch=epoch, net=net, optimizer=optimizer
+                            )

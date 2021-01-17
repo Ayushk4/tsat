@@ -126,3 +126,13 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# vim files
+*.swp
+*.swo
+
+# model outputs
+outputs/
+
+# wandb
+wandb
