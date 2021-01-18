@@ -42,6 +42,7 @@ Method:   Each transformer block consists of two stages
 
 import torch
 import torch.nn as nn
+from opt_einsum import contract
 
 #----------------------------------------
 #--------- Common imports ---------------
@@ -84,7 +85,7 @@ class BasicBlock(nn.Module):
         self.downsample = downsample
         self.stride = stride
 
-    def forward(self, x):
+    def forward(self, x, **args, **kwargs):
 
         """
         For videos, x won't be a batch of single images.
@@ -152,7 +153,7 @@ class Bottleneck(nn.Module):
         self.downsample = downsample
         self.stride = stride
 
-    def forward(self, x):
+    def forward(self, x, **args, **kwargs):
         # unpack x into images
         x_size = x.size()
         x = x.view(-1, *x_size[-3:])
@@ -190,15 +191,18 @@ class TemporalSelfAttention(nn.Module):
         self.query_layer = conv1x1(num_channels, num_channels)
         self.value_layer = conv1x1(num_channels, num_channels)
 
+        # dropout
+        self.dropout = nn.Dropout(config.ATTENTION_DROPOUT)
+
         # we have to construct a learnable variable
         self.gamma = nn.Parameter(torch.tensor(0.0))
 
-    def forward(self, context_frames):
+    def forward(self, context_frames, attention_mask, output_attention_probs=False):
 
         """
         Inputs:
             1. context_frames
-                - Shape: N * F * C * W * H
+                - Shape: N * F * C * H * W
 
         We have to calculate the temporal self attention
 
@@ -212,36 +216,50 @@ class TemporalSelfAttention(nn.Module):
         size = context_frames.size()
 
         # find out the width and height
-        width, height = size[-2], size[-1]
+        channels, height, width = size[-3:]
 
         # unpack context frames
-        context_frames_unpacked = context_frames.view(-1, *size[-3:])
+        context_frames_unpacked = context_frames.view(-1, (channels, height, width))
 
-        # we can direct view in the same size because 1x1 conv does not alter shape
+        # we can directly view in the same size because 1x1 conv does not alter shape
         key_frames = self.key_layer(context_frames_unpacked).view(*size)
         query_frames = self.query_layer(context_frames_unpacked).view(*size)
         value_frames = self.value_layer(context_frames_unpacked).view(*size)
 
         # calculate the attention maps
-        attention_maps = torch.matmul(query_frames, key_frames.transpose(-1,-2))
-        attention_maps = attention_maps / math.sqrt(width) 
+        # and divide by the total number of summations
+        attention_maps = contract('tfcxy, tgcyz -> tfg', query_frames, key_frames.transpose(-1,-2))
+        attention_maps = attention_maps / math.sqrt(channels*height*width*width) 
 
-        # Leave a line blank for potential attention mask
+        # apply the attention mask, calculated in the model file
+        attention_maps = attention_maps + attention_mask
 
         # next take softmax over frames
-        attention_probs = nn.Softmax(dim=1)(attention_maps)
+        attention_probs = nn.Softmax(dim=-1)(attention_maps)
 
-        # Leave a line for attention dropout as used in the original bert model
+        # attention dropout as used in the original bert model
+        attention_probs = self.dropout(attention_probs)
 
-        # take hadamard product of attention probs and value_frames
+        # calculate the product of attention_probs and value_frames
+        # Shape of attention_probs: N * F * F
+        # Shape of value_frames: N * F * C * H * W
+        contextualized_frames = contract('tfg,tgchw->tfchw', attention_probs, value_frames)
+
+        # add the skip connection
+        contextualized_frames = self.gamma * contextualized_frames + context_frames
+
+        if output_attention_probs:
+            return contextualized_frames, attention_probs
+        else:
+            return contextualized_frames
 
 
-class FullConvTransformer(nn.Module):
+class FullyConvTransformer(nn.Module):
 
     def __init__(self, config, block, layers, zero_init_residual=False,
                  groups=1, width_per_group=64, replace_stride_with_dilation=None,
                  norm_layer=None):
-        super(FullConvTransformer, self).__init__()
+        super(FullyConvTransformer, self).__init__()
 
         # Config
         self.config = config
@@ -360,7 +378,7 @@ class FullConvTransformer(nn.Module):
 
         return nn.ModuleList(layers)
 
-    def forward(self, context_frames, keyframe_index):
+    def forward(self, context_frames, keyframe_index, attention_mask):
 
         """
         Inputs:
@@ -402,12 +420,12 @@ class FullConvTransformer(nn.Module):
 
         for tsa_resblock in self.all_layers:
             for module in tsa_resblock:
-                x = module(x)
+                context_frames = module(context_frames, keyframe_index, attention_mask)
 
         if self.config.NETWORK.RETURN_ALL_FEATURES:
-            return x
+            return context_frames
         else:
-            return x[:,keyframe_index,:,:,:]
+            return context_frames[:,keyframe_index,:,:,:]
 
 
 
