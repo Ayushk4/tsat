@@ -103,7 +103,7 @@ class BasicBlock(nn.Module):
 
         # unpack x into images
         x_size = x.size()
-        x = x.view(-1, *x_size[-3:])
+        x = x.contiguous().view(-1, *x_size[-3:])
         identity = x
 
         out = self.conv1(x)
@@ -121,7 +121,7 @@ class BasicBlock(nn.Module):
 
         # pack again to frames
         out_size = out.size()
-        out = out.view(*x_size[:2], *out_size[-3:])
+        out = out.contiguous().view(*x_size[:2], *out_size[-3:])
 
         return out
 
@@ -157,7 +157,7 @@ class Bottleneck(nn.Module):
     def forward(self, x, *args, **kwargs):
         # unpack x into images
         x_size = x.size()
-        x = x.view(-1, *x_size[-3:])
+        x = x.contiguous().view(-1, *x_size[-3:])
 
         identity = x
 
@@ -179,7 +179,7 @@ class Bottleneck(nn.Module):
         out = self.relu(out)
 
         out_size = out.size()
-        out = out.view(*x_size[:2], *out_size[-3:])
+        out = out.contiguous().view(*x_size[:2], *out_size[-3:])
 
         return out
 
@@ -221,12 +221,12 @@ class TemporalSelfAttention(nn.Module):
         channels, height, width = size[-3:]
 
         # unpack context frames
-        context_frames_unpacked = context_frames.view(-1, channels, height, width)
+        context_frames_unpacked = context_frames.contiguous().view(-1, channels, height, width)
 
         # we can directly view in the same size because 1x1 conv does not alter shape
-        key_frames = self.key_layer(context_frames_unpacked).view(*size)
-        query_frames = self.query_layer(context_frames_unpacked).view(*size)
-        value_frames = self.value_layer(context_frames_unpacked).view(*size)
+        key_frames = self.key_layer(context_frames_unpacked).contiguous().view(*size)
+        query_frames = self.query_layer(context_frames_unpacked).contiguous().view(*size)
+        value_frames = self.value_layer(context_frames_unpacked).contiguous().view(*size)
 
         # calculate the attention maps
         # and divide by the total number of summations
@@ -423,10 +423,10 @@ class FullyConvTransformer(nn.Module):
         # Apply the initial conv layers
         N, F, C, H, W = context_frames.size()
 
-        context_frames = context_frames.view(-1, C, H, W)
+        context_frames = context_frames.contiguous().view(-1, C, H, W)
         context_frames = self.initial_conv_layer(context_frames)
         _, C_, H_, W_ = context_frames.size()
-        context_frames = context_frames.view(N, F, C_, H_, W_)
+        context_frames = context_frames.contiguous().view(N, F, C_, H_, W_)
 
         for tsa_resblock in self.all_layers:
             for module in tsa_resblock:
