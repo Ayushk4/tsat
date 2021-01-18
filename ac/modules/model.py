@@ -29,6 +29,8 @@ class VideoTransformer(nn.Module):
         self.temporal_mlp_hidden = config.NETWORK.TEMPORAL_MLP_DIMS
         self.temporal_mlp_activation = config.NETWORK.TEMPORAL_MLP_ACTIVATION
         
+        self.transformer_feed_spatial = config.NETWORK.PASS_SPATIAL_TO_TRANSFORMER
+
         self.transformer_dims = config.NETWORK.TRANSFORMER_DIMS
         self.transformer_heads = config.NETWORK.TRANSFORMER_HEADS
         self.transformer_encoder_cnt = config.NETWORK.TRANSFORMER_ENCODER_CNT
@@ -154,16 +156,28 @@ class VideoTransformer(nn.Module):
         sep_rep = self.sep.expand(B, 1, self.transformer_dims)
         end_rep = self.end.expand(B, 1, self.transformer_dims)
         
-        input_vec = torch.cat([cls_rep, spat, sep_rep,
-                            temp, end_rep], 1).permute(1,0,2) # Shape = [<spat_seq>+<temp_seq>+3, B, feat_size]
+        if self.transformer_feed_spatial:
+            input_vec = torch.cat([cls_rep, spat, sep_rep,
+                                temp, end_rep], 1).permute(1,0,2) # Shape = [<spat_seq>+<temp_seq>+3, B, feat_size]
 
-        device = input_vec.device
-        tf_pad_mask = torch.cat([
+            device = input_vec.device
+            tf_pad_mask = torch.cat([
                             torch.zeros((B, input_vec.shape[0] - frames_pad_mask.shape[1] - 1),dtype=torch.bool).to(device),
                             frames_pad_mask,
                             torch.zeros((B, 1), dtype=torch.bool).to(device)
                         ], 1)
-        assert tf_pad_mask.shape == (input_vec.shape[1], input_vec.shape[0])
+            assert tf_pad_mask.shape == (input_vec.shape[1], input_vec.shape[0])
+        else:
+            input_vec = torch.cat([cls_rep, temp, end_rep], 1).permute(1,0,2) # Shape = [<temp_seq>+3, B, feat_size]
+
+            device = input_vec.device
+            tf_pad_mask = torch.cat([
+                            torch.zeros((B, 1), dtype=torch.bool).to(device),
+                            frames_pad_mask,
+                            torch.zeros((B, 1), dtype=torch.bool).to(device)
+                        ], 1)
+            assert tf_pad_mask.shape == (input_vec.shape[1], input_vec.shape[0])
+
         # TODO: Double check the pad mask (if this is wrong the model won't work)
         output_vectors = self.transformer_encoder(src=input_vec, src_key_padding_mask=tf_pad_mask) # Shape: [<spat_seq>+<temp_seq>+3, B, feat_size]
 
