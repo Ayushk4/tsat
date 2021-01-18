@@ -29,12 +29,12 @@ class FCTransformerForAC(nn.Module):
         # Create the adaptive pool layer and final_mlp
         self.backbone_output_dimension = 512 * block.expansion
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.final_mlp = nn.Sequential([
+        self.final_mlp = nn.Sequential(
             nn.Linear(self.backbone_output_dimension, config.NETWORK.FINAL_MLP_HIDDEN),
             nn.ReLU(inplace=True),
             nn.Dropout(config.NETWORK.FINAL_MLP_DROPOUT),
             nn.Linear(config.NETWORK.FINAL_MLP_HIDDEN, config.NETWORK.NUM_CLASSES)
-        ])
+        )
 
         # Create Positional Encodings
         # TODO: add positional encodings either here or to TSA
@@ -69,7 +69,7 @@ class FCTransformerForAC(nn.Module):
 
         # create the attention mask
         # First, add a False for the CLS token
-        device = frames_pad_mask.device()
+        device = frames_pad_mask.device
         frames_pad_mask = torch.cat((torch.zeros((B,1),dtype=torch.bool).to(device),
                                     frames_pad_mask), 1)
 
@@ -86,6 +86,7 @@ class FCTransformerForAC(nn.Module):
 
         # apply the classification layers
         features = self.avgpool(classification_spatial_features)
+        features = torch.flatten(features, 1)
         logits = self.final_mlp(features)
 
         return logits
