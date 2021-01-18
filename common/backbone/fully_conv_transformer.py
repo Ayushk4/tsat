@@ -48,7 +48,7 @@ from opt_einsum import contract
 #--------- Common imports ---------------
 #----------------------------------------
 import math
-from common.utils.masks import *
+from typing import Type, Any, Callable, Union, List, Optional
 
 def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1) -> nn.Conv2d:
     """3x3 convolution with padding"""
@@ -85,7 +85,7 @@ class BasicBlock(nn.Module):
         self.downsample = downsample
         self.stride = stride
 
-    def forward(self, x, **args, **kwargs):
+    def forward(self, x, *args, **kwargs):
 
         """
         For videos, x won't be a batch of single images.
@@ -120,7 +120,8 @@ class BasicBlock(nn.Module):
         out = self.relu(out)
 
         # pack again to frames
-        out = out.view(*x_size[:2], *out.size[-3:])
+        out_size = out.size()
+        out = out.view(*x_size[:2], *out_size[-3:])
 
         return out
 
@@ -153,7 +154,7 @@ class Bottleneck(nn.Module):
         self.downsample = downsample
         self.stride = stride
 
-    def forward(self, x, **args, **kwargs):
+    def forward(self, x, *args, **kwargs):
         # unpack x into images
         x_size = x.size()
         x = x.view(-1, *x_size[-3:])
@@ -177,7 +178,8 @@ class Bottleneck(nn.Module):
         out += identity
         out = self.relu(out)
 
-        out = out.view(*x_size[:2], *out.size[-3:])
+        out_size = out.size()
+        out = out.view(*x_size[:2], *out_size[-3:])
 
         return out
 
@@ -219,7 +221,7 @@ class TemporalSelfAttention(nn.Module):
         channels, height, width = size[-3:]
 
         # unpack context frames
-        context_frames_unpacked = context_frames.view(-1, (channels, height, width))
+        context_frames_unpacked = context_frames.view(-1, channels, height, width)
 
         # we can directly view in the same size because 1x1 conv does not alter shape
         key_frames = self.key_layer(context_frames_unpacked).view(*size)
@@ -285,11 +287,11 @@ class FullyConvTransformer(nn.Module):
         self.base_width = width_per_group
 
         # Initial conv layer to process the feature maps
-        self.initial_conv_layer = nn.Sequential([
+        self.initial_conv_layer = nn.Sequential(
                 nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False),
                 norm_layer(self.inplanes),
                 nn.ReLU(inplace=True), nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-            ])
+            )
 
         # Next, we create 4 resnet blocks with temporal self attention
         self.tsa_resblock_1 = self._make_tsa_resblock(block, 64, layers[0])
@@ -418,9 +420,17 @@ class FullyConvTransformer(nn.Module):
         or for the keyframe only depending on the config flag
         """
 
+        # Apply the initial conv layers
+        N, F, C, H, W = context_frames.size()
+
+        context_frames = context_frames.view(-1, C, H, W)
+        context_frames = self.initial_conv_layer(context_frames)
+        _, C_, H_, W_ = context_frames.size()
+        context_frames = context_frames.view(N, F, C_, H_, W_)
+
         for tsa_resblock in self.all_layers:
             for module in tsa_resblock:
-                context_frames = module(context_frames, keyframe_index, attention_mask)
+                context_frames = module(context_frames, attention_mask)
 
         if self.config.NETWORK.RETURN_ALL_FEATURES:
             return context_frames
