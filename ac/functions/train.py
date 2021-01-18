@@ -20,6 +20,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 #--------- Model related imports --------
 #----------------------------------------
 from ac.modules.model import VideoTransformer
+from ac.modules.fc_transformer_for_ac import *
 
 
 #----------------------------------------
