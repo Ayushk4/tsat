@@ -131,7 +131,7 @@ def parse_args():
                              "the IP address or the hostname of node 0, for "
                              "single node multi-proc training, the "
                              "--master_addr can simply be 127.0.0.1")
-    parser.add_argument("--master_port", default=29500, type=int,
+    parser.add_argument("--master_port", default=29050, type=int,
                         help="Master node (rank 0)'s free port that needs to "
                              "be used for communciation during distributed "
                              "training")
@@ -183,7 +183,7 @@ def main():
         #            args.training_script,
         #            "--local_rank={}".format(local_rank)] + args.training_script_args
 
-        cmd = [sys.executable, "-u",
+        cmd = [sys.executable, "-u", "-W ignore",
                args.training_script] + args.training_script_args + ["--dist"]
 
         process = subprocess.Popen(cmd, env=current_env)
