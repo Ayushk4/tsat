@@ -53,7 +53,8 @@ class VideoTransformer(nn.Module):
                                             eval("nn."+self.temporal_mlp_activation)(),
                                             nn.Linear(self.temporal_mlp_hidden, self.transformer_dims)
                                         )
-        self.bb_to_spatial = nn.Linear(self.bb_out_dims, self.transformer_dims)
+        if self.transformer_feed_spatial:
+            self.bb_to_spatial = nn.Linear(self.bb_out_dims, self.transformer_dims)
 
         # Positional and Segment Encoding
         # TODO: shift to learnable 1D positional encoding and have different instantiations
@@ -75,11 +76,13 @@ class VideoTransformer(nn.Module):
         # [CLS] and [SEP] learnable vectors
         # TODO: Better Initialization
         self.cls = nn.Parameter(torch.rand(1, 1, self.transformer_dims))
-        self.sep = nn.Parameter(torch.rand(1, 1, self.transformer_dims))
         self.end = nn.Parameter(torch.rand(1, 1, self.transformer_dims))
+        if self.transformer_feed_spatial:
+            self.sep = nn.Parameter(torch.rand(1, 1, self.transformer_dims))
         
         # Segment Embeddings: [SPAT] and [TEMP]
-        self.spat_seg_emb = nn.Parameter(torch.rand(1, 1, self.transformer_dims))
+        if self.transformer_feed_spatial:
+           self.spat_seg_emb = nn.Parameter(torch.rand(1, 1, self.transformer_dims))
         self.temp_seg_emb = nn.Parameter(torch.rand(1, 1, self.transformer_dims))
 
         # Tagging layer
@@ -132,30 +135,35 @@ class VideoTransformer(nn.Module):
         temp_feats = self.bb_to_temporal(temp_feats.view(B, T, -1))
 
         # Spatial feats
-        _, C_, H_, W_ = bb_feats.shape
-        bb_feats = bb_feats.view(B, T, C_, H_, W_)
-        spat_feat_grid = bb_feats[torch.arange(B), key_frame_idx, :, :, :] # Shape: [B, C_, H_, W_]
-        spat_feat_sequence = spat_feat_grid.view(B, C_, H_ * W_).permute(0,2,1)
-        spat_feat_sequence = self.bb_to_spatial(spat_feat_sequence)
+        if self.transformer_feed_spatial:
+            _, C_, H_, W_ = bb_feats.shape
+            bb_feats = bb_feats.view(B, T, C_, H_, W_)
+            spat_feat_grid = bb_feats[torch.arange(B), key_frame_idx, :, :, :] # Shape: [B, C_, H_, W_]
+            spat_feat_sequence = spat_feat_grid.view(B, C_, H_ * W_).permute(0,2,1)
+            spat_feat_sequence = self.bb_to_spatial(spat_feat_sequence)
 
         # Calculate the Positional Encodings
         # Actually, the positional encoding is already added in the following function call
         temp = self.positional_encoding(temp_feats)
-        spat = self.positional_encoding(spat_feat_sequence)
+        if self.transformer_feed_spatial:
+            spat = self.positional_encoding(spat_feat_sequence)
         
         # Expand the segment embeddings
         temp_seg_emb = self.temp_seg_emb.expand(B, temp.size(1), self.transformer_dims)
-        spat_seg_emb = self.spat_seg_emb.expand(B, spat.size(1), self.transformer_dims)
+        if self.transformer_feed_spatial:
+            spat_seg_emb = self.spat_seg_emb.expand(B, spat.size(1), self.transformer_dims)
         
         # Add the segment embeddings to temporal and spatial sequence
         temp += temp_seg_emb
-        spat += spat_seg_emb
+        if self.transformer_feed_spatial:
+           spat += spat_seg_emb
         
         # Expand the token dimensions
         cls_rep = self.cls.expand(B, 1, self.transformer_dims)
-        sep_rep = self.sep.expand(B, 1, self.transformer_dims)
         end_rep = self.end.expand(B, 1, self.transformer_dims)
-        
+        if self.transformer_feed_spatial:
+            sep_rep = self.sep.expand(B, 1, self.transformer_dims)
+
         if self.transformer_feed_spatial:
             input_vec = torch.cat([cls_rep, spat, sep_rep,
                                 temp, end_rep], 1).permute(1,0,2) # Shape = [<spat_seq>+<temp_seq>+3, B, feat_size]
