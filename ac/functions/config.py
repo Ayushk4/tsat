@@ -68,24 +68,33 @@ _C.DATASET.VAL_SPLIT = "val"
 # ------------------------------------------------------------------------------------- #
 
 _C.NETWORK = edict()
-_C.NETWORK.BACKBONE = ""
 _C.NETWORK.BACKBONE_LOAD_PRETRAINED = True
 _C.NETWORK.PRETRAINED_MODEL = ''
+_C.NETWORK.NUM_CLASSES = 700
+_C.NETWORK.PARTIAL_PRETRAIN = False
 
+# Video transformer
+
+_C.NETWORK.BACKBONE = ""
 _C.NETWORK.TEMPORAL_MLP_DIMS = 512
 _C.NETWORK.TEMPORAL_MLP_ACTIVATION = "" # The code will prepend `torch.nn.` and do eval over the string.
-
 _C.NETWORK.TRANSFORMER_DIMS = 512
 _C.NETWORK.TRANSFORMER_HEADS = 8
 _C.NETWORK.TRANSFORMER_ENCODER_CNT = 8
 _C.NETWORK.TRANSFORMER_DROPOUT = 0.1
 _C.NETWORK.TRANSFORMER_FEEDFORWARD_DIMS = 2048
-
 _C.NETWORK.POSITIONAL_DROPOUT = 0.1
-_C.NETWORK.NUM_CLASSES = 700
 
-_C.NETWORK.PARTIAL_PRETRAIN = False
+# Fully-Conv transformer
 
+_C.NETWORK.RETURN_ALL_FEATURES = False
+_C.NETWORK.TSA_EVERY_BLOCK = True
+_C.NETWORK.IMAGE_SPAT_DIMENSION = [3,224,224]
+_C.NETWORK.FINAL_MLP_HIDDEN = 1024
+_C.NETWORK.FINAL_MLP_DROPOUT = 0.5
+
+_C.NETWORK.TSA = edict()
+_C.NETWORK.TSA.ATTENTION_DROPOUT = 0.1
 
 # ------------------------------------------------------------------------------------- #
 # Update Config
