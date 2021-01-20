@@ -15,7 +15,7 @@ DATASET:
     CLASS_TO_INDEX_FILE: 'mini/class_to_index.json'
     TRAIN_VIDEO_RESIZED_PATH: 'train_cache'
     VAL_VIDEO_RESIZED_PATH: 'val_cache'
-    TOY: False
+    TOY: true
     TOY_SAMPLES: 80
     SAMPLING_STRIDE: 2
     TRAIN_SPLIT: 'train'
@@ -36,6 +36,8 @@ NETWORK:
     POSITIONAL_DROPOUT: 0.5
     NUM_CLASSES: 700
     PARTIAL_PRETRAIN: False
+    FINAL_MLP_HIDDEN: 1024
+    FINAL_MLP_DROPOUT: 0.5
 
 
 TRAIN:
