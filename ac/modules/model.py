@@ -87,6 +87,12 @@ class VideoTransformer(nn.Module):
 
         # Tagging layer
         self.output_tagger = nn.Linear(self.transformer_dims, self.num_classes)
+        #self.output_tagger = nn.Sequential(
+        #        nn.Linear(self.transformer_dims, config.NETWORK.FINAL_MLP_HIDDEN),
+        #        nn.ReLU(inplace=True),
+        #        nn.Dropout(config.NETWORK.FINAL_MLP_DROPOUT),
+        #        nn.Linear(config.NETWORK.FINAL_MLP_HIDDEN, self.num_classes)
+        #    )
 
         # TODO: Set Default Initiliazer.
 
@@ -127,17 +133,34 @@ class VideoTransformer(nn.Module):
         # Pass frames through backbone
         # TODO: Introduce padding only in the transformer, flatten out the portion
         #       in backbone into 4D input for reduced computation
+        # before passing into the backbone, unpad the frames
+        """
+        Method to avoid any problem with batchNorm,
+
+        We first unpad the frames into their true size,
+        then pass them through the backbone that contains the batchNorm layer,
+        we then pad the obtained spatial features again with zeros
+        """
         frames = frames.view(-1, C, H, W)
-        bb_feats = self.backbone(frames)
-        
-        # Temporal feats
+        frames_pad_mask_unpacked = frames_pad_mask.contiguous().view(-1)
+        true_frames = frames[~frames_pad_mask_unpacked]
+        true_bb_feats = self.backbone(true_frames)
+
+        # pad the bb feats
+        # create the zero_tensor
+        true_bb_feats_size = true_bb_feats.size()
+        bb_feats = torch.zeros(B*T, *true_bb_feats_size[1:]).to(true_bb_feats.device)
+        bb_feats[~frames_pad_mask_unpacked] += true_bb_feats
+        bb_feats = bb_feats.contiguous().view(B, T, *true_bb_feats_size[1:])
+
         temp_feats = self.bb_to_temp_pool(bb_feats)
         temp_feats = self.bb_to_temporal(temp_feats.view(B, T, -1))
 
+        # pad them again
+
         # Spatial feats
         if self.transformer_feed_spatial:
-            _, C_, H_, W_ = bb_feats.shape
-            bb_feats = bb_feats.view(B, T, C_, H_, W_)
+            _, T, C_, H_, W_ = bb_feats.shape
             spat_feat_grid = bb_feats[torch.arange(B), key_frame_idx, :, :, :] # Shape: [B, C_, H_, W_]
             spat_feat_sequence = spat_feat_grid.view(B, C_, H_ * W_).permute(0,2,1)
             spat_feat_sequence = self.bb_to_spatial(spat_feat_sequence)
