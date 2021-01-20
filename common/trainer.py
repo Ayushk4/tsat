@@ -144,10 +144,11 @@ def train(config,
 
 
         # Log both the training and validation metrics
-        train_metrics.wandb_log(epoch, use_wandb)
-        val_metrics.wandb_log(epoch, use_wandb)
-        if use_wandb:
-            wandb.log({'Epoch Time':end_time}, step=epoch)
+        if rank == 0:
+            train_metrics.wandb_log(epoch, use_wandb)
+            val_metrics.wandb_log(epoch, use_wandb)
+            if use_wandb:
+                wandb.log({'Epoch Time':end_time}, step=epoch)
 
         # print the validation accuracy
         if rank == 0:

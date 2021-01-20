@@ -168,7 +168,8 @@ def train_net(args, config):
     epoch_end_callbacks = [Checkpoint(config, val_metrics)]
 
     if args.wandb:
-        wandb.watch(model, log='all')
+        if not args.dist or rank == 0:
+           wandb.watch(model, log='all')
 
     # At last call the training function from trainer
     train(config=config,
