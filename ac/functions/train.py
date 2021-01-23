@@ -20,7 +20,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 #--------- Model related imports --------
 #----------------------------------------
 from ac.modules.model import VideoTransformer
-
+from ac.modules.resnet_baseline import ResnetBaseline
 
 #----------------------------------------
 #--------- Dataloader related imports ---
