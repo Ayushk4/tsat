@@ -10,9 +10,9 @@ TASK_TYPE: 'Classification'
 DATASET:
     DATASET_NAME: 'kinetics'
     DATA_PATH: '/data/datasets/kinetics700_2020/'
-    TRAIN_ANNOTATIONS_PATH: 'mini/train.json' 
-    VAL_ANNOTATIONS_PATH: 'mini/val.json'
-    CLASS_TO_INDEX_FILE: 'mini/class_to_index.json'
+    TRAIN_ANNOTATIONS_PATH: 'full/train.json' 
+    VAL_ANNOTATIONS_PATH: 'full/val.json'
+    CLASS_TO_INDEX_FILE: 'full/class_to_index.json'
     TRAIN_VIDEO_RESIZED_PATH: 'train_cache'
     VAL_VIDEO_RESIZED_PATH: 'val_cache'
     TOY: False
@@ -31,11 +31,13 @@ NETWORK:
     TRANSFORMER_DIMS: 512
     TRANSFORMER_HEADS: 8
     TRANSFORMER_ENCODER_CNT: 4
-    TRANSFORMER_DROPOUT: 0.5
+    TRANSFORMER_DROPOUT: 0.1
     TRANSFORMER_FEEDFORWARD_DIMS: 2048
-    POSITIONAL_DROPOUT: 0.5
+    POSITIONAL_DROPOUT: 0.1
     NUM_CLASSES: 700
     PARTIAL_PRETRAIN: False
+    FINAL_MLP_HIDDEN: 1024
+    FINAL_MLP_DROPOUT: 0.5
 
 
 TRAIN:
