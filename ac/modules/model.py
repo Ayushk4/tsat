@@ -86,13 +86,13 @@ class VideoTransformer(nn.Module):
         self.temp_seg_emb = nn.Parameter(torch.rand(1, 1, self.transformer_dims))
 
         # Tagging layer
-        self.output_tagger = nn.Linear(self.transformer_dims, self.num_classes)
-        #self.output_tagger = nn.Sequential(
-        #        nn.Linear(self.transformer_dims, config.NETWORK.FINAL_MLP_HIDDEN),
-        #        nn.ReLU(inplace=True),
-        #        nn.Dropout(config.NETWORK.FINAL_MLP_DROPOUT),
-        #        nn.Linear(config.NETWORK.FINAL_MLP_HIDDEN, self.num_classes)
-        #    )
+        # self.output_tagger = nn.Linear(self.transformer_dims, self.num_classes)
+        self.output_tagger = nn.Sequential(
+                nn.Linear(self.transformer_dims, config.NETWORK.FINAL_MLP_HIDDEN),
+                nn.ReLU(inplace=True),
+                nn.Dropout(config.NETWORK.FINAL_MLP_DROPOUT),
+                nn.Linear(config.NETWORK.FINAL_MLP_HIDDEN, self.num_classes)
+            )
 
         # TODO: Set Default Initiliazer.
 
