@@ -23,19 +23,16 @@ class AttentionPool(nn.Module):
         self.transformation = nn.Linear(input_vec_dimensions, 1)
         self.softmax = nn.Softmax(-2)
 
-    def forward(self, temporal_feats, attention_mask=None):
+    def forward(self, temporal_feats, attention_mask):
 
         # Shape: BS x F x input_vec_dimensions
         attention_scores = self.transformation(temporal_feats)
 
         # mask according to the `attention_mask`
-        attention_scores -= 10000 * (attention_mask.float())
+        attention_scores -= 10000 * (attention_mask.unsqueeze(-1).float())
 
         # take the softmax: B x F
         attention_scores = self.softmax(attention_scores)
-
-        # assertion
-        assert attention_scores.sum() == attention_scores.size(0), "Error: Softmax not taken properly"
 
         # matmul
         # B x F x 1, B x F x D --> B x D
@@ -52,7 +49,7 @@ class ResnetBaseline(nn.Module):
         # Store necessary data from config
         self.backbone_name = config.NETWORK.BACKBONE
         self.backbone_load_pretrained = config.NETWORK.BACKBONE_LOAD_PRETRAINED
-        self.attention_pool_dims = config.NETWORK.TRANSFORMER_DIMS
+        self.attention_pool_dim = config.NETWORK.TRANSFORMER_DIMS
         assert type(self.backbone_load_pretrained) == bool
         assert self.backbone_name in bb_to_tv_function.keys()
 
@@ -122,10 +119,10 @@ class ResnetBaseline(nn.Module):
         bb_feats[~frames_pad_mask_unpacked] += true_bb_feats
         bb_feats = bb_feats.contiguous().view(B, T, *true_bb_feats_size[1:])
 
-        temp_feats = self.bb_to_temporal(temp_feats.view(B, T, -1))
+        temp_feats = self.bb_to_temporal(bb_feats.view(B, T, -1))
 
         # attention pool
-        temp_feats = self.attention_pool(temp_feats)
+        temp_feats = self.attention_pool(temp_feats, frames_pad_mask)
 
         return self.output_tagger(temp_feats)
 
