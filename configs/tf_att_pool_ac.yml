@@ -4,7 +4,7 @@ GPUS: '1,2,3,4,5,6,7,8'
 NUM_WORKERS_PER_GPU: 4
 RUN: 'ac_vid_trans'
 OUTPUT_PATH: '/workspace/ayushk4/tsat/outputs/'
-MODEL: 'VideoTransformer'
+MODEL: 'VideoTransformerAttPool'
 TASK_TYPE: 'Classification'
 
 DATASET:
@@ -41,15 +41,15 @@ NETWORK:
 
 
 TRAIN:
-    BATCH_SIZE: 40
+    BATCH_SIZE: 35
     LR: 0.0001
     MOMENTUM: 0.9
     WEIGHT_DECAY: 0.01
     OPTIMIZER: 'AdamW'
     SHUFFLE: True
     BEGIN_EPOCH: 0
-    END_EPOCH: 10
+    END_EPOCH: 5
 
 VAL:
-    BATCH_SIZE: 40
+    BATCH_SIZE: 35
     SHUFFLE: False
