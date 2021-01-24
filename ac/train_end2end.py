@@ -67,7 +67,7 @@ def main():
         # initialize wandb
         rank = int(os.environ['RANK'] or 0)
         if not args.dist or rank == 0:
-            wandb.init(entity="Ayushk4", project=config.PROJECT, name=config.RUN, config=config)
+            wandb.init(entity="stc-shicrew", project=config.PROJECT, name=config.RUN, config=config)
 
     train_net(args, config)
 
