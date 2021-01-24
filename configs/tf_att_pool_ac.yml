@@ -1,0 +1,55 @@
+---
+RNG_SEED: -1
+GPUS: '1,2,3,4,5,6,7,8'
+NUM_WORKERS_PER_GPU: 4
+RUN: 'ac_vid_trans'
+OUTPUT_PATH: '/workspace/ayushk4/tsat/outputs/'
+MODEL: 'VideoTransformerAttPool'
+TASK_TYPE: 'Classification'
+
+DATASET:
+    DATASET_NAME: 'kinetics'
+    DATA_PATH: '/data/datasets/kinetics700_2020/'
+    TRAIN_ANNOTATIONS_PATH: 'full/train.json' 
+    VAL_ANNOTATIONS_PATH: 'full/val.json'
+    CLASS_TO_INDEX_FILE: 'full/class_to_index.json'
+    TRAIN_VIDEO_RESIZED_PATH: 'train_cache'
+    VAL_VIDEO_RESIZED_PATH: 'val_cache'
+    TOY: True
+    TOY_SAMPLES: 80
+    SAMPLING_STRIDE: 2
+    TRAIN_SPLIT: 'train'
+    VAL_SPLIT: 'val'
+
+
+NETWORK:
+    BACKBONE: 'res18'
+    BACKBONE_LOAD_PRETRAINED: True
+    PASS_SPATIAL_TO_TRANSFORMER: True
+    TEMPORAL_MLP_DIMS: 512
+    TEMPORAL_MLP_ACTIVATION: 'LeakyReLU'
+    TRANSFORMER_DIMS: 512
+    TRANSFORMER_HEADS: 8
+    TRANSFORMER_ENCODER_CNT: 4
+    TRANSFORMER_DROPOUT: 0.1
+    TRANSFORMER_FEEDFORWARD_DIMS: 2048
+    POSITIONAL_DROPOUT: 0.1
+    NUM_CLASSES: 700
+    PARTIAL_PRETRAIN: False
+    FINAL_MLP_HIDDEN: 1024
+    FINAL_MLP_DROPOUT: 0.5
+
+
+TRAIN:
+    BATCH_SIZE: 35
+    LR: 0.0001
+    MOMENTUM: 0.9
+    WEIGHT_DECAY: 0.01
+    OPTIMIZER: 'AdamW'
+    SHUFFLE: True
+    BEGIN_EPOCH: 0
+    END_EPOCH: 5
+
+VAL:
+    BATCH_SIZE: 35
+    SHUFFLE: False
