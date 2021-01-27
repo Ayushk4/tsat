@@ -41,7 +41,7 @@ NETWORK:
     CONV_CLASS: True
 
 TRAIN:
-    BATCH_SIZE: 21
+    BATCH_SIZE: 15
     LR: 0.0001
     MOMENTUM: 0.9
     WEIGHT_DECAY: 0.01
@@ -51,5 +51,5 @@ TRAIN:
     END_EPOCH: 10
 
 VAL:
-    BATCH_SIZE: 21
+    BATCH_SIZE: 15
     SHUFFLE: False
