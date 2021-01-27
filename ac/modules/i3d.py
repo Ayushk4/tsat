@@ -34,7 +34,7 @@ class I3ResNet(torch.nn.Module):
         self.conv1 = inflate.inflate_conv(
             resnet2d.conv1, time_dim=3, time_padding=1, center=True)
         self.bn1 = inflate.inflate_batch_norm(resnet2d.bn1)
-        self.relu = torch.nn.ReLU(inplace=True)
+        self.relu = torch.nn.ReLU(inplace=False)
         self.maxpool = inflate.inflate_pool(
             resnet2d.maxpool, time_dim=3, time_padding=1, time_stride=2)
 
@@ -57,7 +57,8 @@ class I3ResNet(torch.nn.Module):
                 resnet2d.avgpool, time_dim=final_time_dim)
             self.fc = inflate.inflate_linear(resnet2d.fc, 1)
 
-    def forward(self, x):
+    def forward(self, x, other1, other2):
+        x = x.permute(0,2,1,3,4)
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -118,7 +119,7 @@ class Bottleneck3d(torch.nn.Module):
         else:
             self.bn3 = None
 
-        self.relu = torch.nn.ReLU(inplace=True)
+        self.relu = torch.nn.ReLU(inplace=False)
 
         if bottleneck2d.downsample is not None:
             self.downsample = inflate_downsample(
