@@ -29,7 +29,6 @@ class I3ResNet(torch.nn.Module):
         conv_class = config.NETWORK.CONV_CLASS
 
         resnet2d = bb_to_tv_function[config.NETWORK.BACKBONE](pretrained=config.NETWORK.BACKBONE_LOAD_PRETRAINED)
-
         self.conv_class = conv_class
 
         self.conv1 = inflate.inflate_conv(
@@ -39,10 +38,10 @@ class I3ResNet(torch.nn.Module):
         self.maxpool = inflate.inflate_pool(
             resnet2d.maxpool, time_dim=3, time_padding=1, time_stride=2)
 
-        self.layer1 = inflate_reslayer(resnet2d.layer1)
-        self.layer2 = inflate_reslayer(resnet2d.layer2)
-        self.layer3 = inflate_reslayer(resnet2d.layer3)
-        self.layer4 = inflate_reslayer(resnet2d.layer4)
+        self.layer1 = inflate_reslayer(resnet2d.layer1, config.NETWORK.BACKBONE)
+        self.layer2 = inflate_reslayer(resnet2d.layer2, config.NETWORK.BACKBONE)
+        self.layer3 = inflate_reslayer(resnet2d.layer3, config.NETWORK.BACKBONE)
+        self.layer4 = inflate_reslayer(resnet2d.layer4, config.NETWORK.BACKBONE)
 
         if conv_class:
             self.avgpool = inflate.inflate_pool(resnet2d.avgpool, time_dim=1)
@@ -81,16 +80,16 @@ class I3ResNet(torch.nn.Module):
         return x
 
 
-def inflate_reslayer(reslayer2d):
+def inflate_reslayer(reslayer2d, backbone):
     reslayers3d = []
     for layer2d in reslayer2d:
-        layer3d = Bottleneck3d(layer2d)
+        layer3d = Bottleneck3d(layer2d, backbone)
         reslayers3d.append(layer3d)
     return torch.nn.Sequential(*reslayers3d)
 
 
 class Bottleneck3d(torch.nn.Module):
-    def __init__(self, bottleneck2d):
+    def __init__(self, bottleneck2d, backbone):
         super(Bottleneck3d, self).__init__()
 
         spatial_stride = bottleneck2d.conv2.stride[0]
@@ -107,9 +106,16 @@ class Bottleneck3d(torch.nn.Module):
             center=True)
         self.bn2 = inflate.inflate_batch_norm(bottleneck2d.bn2)
 
-        self.conv3 = inflate.inflate_conv(
-            bottleneck2d.conv3, time_dim=1, center=True)
-        self.bn3 = inflate.inflate_batch_norm(bottleneck2d.bn3)
+        if backbone not in ["res18", "res34"]:
+            self.conv3 = inflate.inflate_conv(
+                bottleneck2d.conv3, time_dim=1, center=True)
+        else:
+            self.conv3 = None
+
+        if backbone not in ["res18", "res34"]:
+            self.bn3 = inflate.inflate_batch_norm(bottleneck2d.bn3)
+        else:
+            self.bn3 = None
 
         self.relu = torch.nn.ReLU(inplace=True)
 
@@ -119,6 +125,7 @@ class Bottleneck3d(torch.nn.Module):
         else:
             self.downsample = None
 
+        assert (self.conv3 != None and self.bn3 != None) or (self.conv3 == None and self.bn3 == None)
         self.stride = bottleneck2d.stride
 
     def forward(self, x):
@@ -131,8 +138,10 @@ class Bottleneck3d(torch.nn.Module):
         out = self.bn2(out)
         out = self.relu(out)
 
-        out = self.conv3(out)
-        out = self.bn3(out)
+        if self.conv3 != None:
+            out = self.conv3(out)
+        if self.bn3 != None:
+            out = self.bn3(out)
 
         if self.downsample is not None:
             residual = self.downsample(x)
