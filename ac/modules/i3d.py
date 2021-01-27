@@ -51,6 +51,7 @@ class I3ResNet(torch.nn.Module):
                 kernel_size=(1, 1, 1),
                 bias=True)
         else:
+            raise NotImplementedError
             final_time_dim = int(math.ceil(frame_nb / 16))
             self.avgpool = inflate.inflate_pool(
                 resnet2d.avgpool, time_dim=final_time_dim)
