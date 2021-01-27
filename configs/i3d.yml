@@ -16,7 +16,7 @@ DATASET:
     TRAIN_VIDEO_RESIZED_PATH: 'train_cache'
     VAL_VIDEO_RESIZED_PATH: 'val_cache'
     TOY: False
-    TOY_SAMPLES: 48
+    TOY_SAMPLES: 30
     SAMPLING_STRIDE: 1
     TRAIN_SPLIT: 'train'
     VAL_SPLIT: 'val'
@@ -41,7 +41,7 @@ NETWORK:
     CONV_CLASS: True
 
 TRAIN:
-    BATCH_SIZE: 15
+    BATCH_SIZE: 18
     LR: 0.0001
     MOMENTUM: 0.9
     WEIGHT_DECAY: 0.01
@@ -51,5 +51,5 @@ TRAIN:
     END_EPOCH: 10
 
 VAL:
-    BATCH_SIZE: 15
+    BATCH_SIZE: 18
     SHUFFLE: False
