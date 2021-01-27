@@ -22,6 +22,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from ac.modules.video_transformer import VideoTransformer
 from ac.modules.video_transformer_att_pool import VideoTransformerAttPool
 from ac.modules.resnet_baseline import ResnetBaseline
+from ac.modules.i3d import I3ResNet
 
 #----------------------------------------
 #--------- Dataloader related imports ---
