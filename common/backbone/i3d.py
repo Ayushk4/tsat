@@ -4,7 +4,7 @@ import torch
 from torch.nn import ReplicationPad3d
 import torchvision 
 
-from common.i3d import inflator as inflate
+from .inflator as inflate
 
 bb_to_tv_function = {"res18": torchvision.models.resnet18,
                     "res34": torchvision.models.resnet34,
