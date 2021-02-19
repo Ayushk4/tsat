@@ -13,19 +13,21 @@ def collate_fn(batch):
     caps = [single[2] for single in batch]
     object_labels = [single[3] for single in batch]
     keyframes_ixs = [single[4] for single in batch]
-
+    pad_captions = batch[0][-1]
     num_boxes = [f.shape[0] for f in bboxes]
 
     max_boxes = max(num_boxes)
     boxes_pad_masks = torch.BoolTensor([[False] * n + [True] * (max_boxes - n) for n in num_boxes])
 
     bboxes = [box_padding_fn(f, max_boxes - n) for f,n in zip(bboxes, num_boxes)]
-    caps = [caps_padding_fn(f, max_boxes - n) for f,n in zip(caps, num_boxes)]
+    if pad_captions:
+        caps = [caps_padding_fn(f, max_boxes - n) for f,n in zip(caps, num_boxes)]
     object_labels = [obj_padding_fn(f, max_boxes - n) for f,n in zip(object_labels, num_boxes)]
 
     frames = torch.stack(frames)
     bboxes = torch.stack(bboxes)
-    caps = torch.stack(caps)
+    if pad_captions:
+        caps = torch.stack(caps)
     keyframes_ixs = torch.tensor(keyframes_ixs)
 
-    return frames, bboxes, caps, keyframes_ixs, boxes_pad_masks
+    return frames, keyframes_ixs, {'boxes_pad_masks': boxes_pad_masks, 'bboxes': bboxes, 'caps': caps, 'object_labels': object_labels}
