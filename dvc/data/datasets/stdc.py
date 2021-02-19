@@ -32,7 +32,7 @@ STDC Format
             ...
 
             10 * 4
-            (10 * num_captions) * len_captions
+            
 }
 
 """
@@ -42,8 +42,13 @@ STDC Format
 # 2. Bounding boxes # (B,4) torch.floatTensor
 # 3. Caption Indices # (B,10) torch.LongTensor
 
+import os
+import json
 import torch
-import torch.utils.data.Dataset as Dataset
+from torch.utils.data import Dataset
+from . import stdvc_helper as stdc_helper
+import numpy as np
+from torchvision import transforms
 
 class STDC(Dataset):
 
@@ -64,20 +69,23 @@ class STDC(Dataset):
         self.split = split
 
         # Technical details
-        self.sampling_stride = config.NETWORK.SAMPLING_STRIDE
-        self.sampling_count = config.NETWORK.SAMPLING_COUNT
+        self.sampling_stride = config.DATASET.SAMPLING_STRIDE
+        self.sampling_count = config.DATASET.SAMPLING_COUNT
+        self.resizer_transform = lambda x: transforms.functional.resize(x, (224,224))
+        self.normalizer_transform = transforms.Compose([
+                                        transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+                                ])
+
 
         # find all the annotations
         self.dataset = self.load_annotations()
-
-        # implement caching here
 
         if self.use_toy_version:
             self.dataset = self.dataset[:config.DATASET.TOY_SAMPLES]
 
     def load_annotations(self):
 
-        annotations_base_path = os.path.join(self.root_path, self.data_path, self.annotations_path)
+        annotations_base_path = self.annotations_path# os.path.join(self.root_path, self.data_path, self.annotations_path)
         frames_base_path = os.path.join(self.root_path, self.data_path, self.frames_path)
 
         annotations = json.load(open(annotations_base_path))
@@ -129,12 +137,68 @@ class STDC(Dataset):
 
         return context_frames, sc
 
-    def load_and_preprocess_frames(self, frame_path):
-        pass
+    def preprocess_frames_and_boxes(self, imgs, captions_with_bb):
+        """
+            captions_with_bb : [
+                {"bbox": [63.4903678894043,
+                    8.207611083984375,
+                    192.93972778320312,
+                    264.02484130859375],
+                "caps": [
+                    [12, 46, 71, 14, 81, 81, 81, 81, 81, 81, 81, 81]
+                    ],
+                "type": "person"
+                }
+                {"bbox": [68.13486896878712,
+                    124.97725912325058,
+                    90.49948044399594,
+                    144.51899461451148],
+                "caps": [
+                    [14, 29, 57, 36, 66, 46, 81, 81, 81, 81, 81, 81],
+                    [14, 68, 12, 46, 24, 71, 81, 81, 81, 81, 81, 81]
+                    ],
+                "type": "dish"}
+                ...
+            ]
+        """
+        imgs = imgs.float()
+        imgs = imgs / 255.0
+
+        height, width = imgs.shape[1], imgs.shape[2]
+
+        # Convert boxes to tensor
+        boxes = torch.stack([torch.tensor(d['bbox']) for d in captions_with_bb])
+        # The format of boxes is [x1, y1, x2, y2]. Clips bboxes to image bounds.
+        boxes = torch.tensor(stdc_helper.clip_boxes_to_image(boxes.numpy(), height, width))
+
+
+        # Get boxes object type labels
+        object_class = torch.LongTensor([d['type'] for d in captions_with_bb])
+
+        # Captions randomly sample one for each
+        sample_one_caps = lambda x: torch.LongTensor(x[np.random.choice(x.shape[0], size=1)[0], :])
+        caps = torch.stack([sample_one_caps(np.asarray(d['caps'])) for d in captions_with_bb])
+
+        assert caps.shape[0] == boxes.shape[0]
+
+        # Normalize images by mean and std.
+        imgs = self.normalizer_transform(self.resizer_transform(imgs.permute(0,3,1,2)))
+        # Scale BBoxes to 224,224 img:
+        boxes[:, 0] = boxes[:, 0] * 224 / width
+        boxes[:, 1] = boxes[:, 1] * 224 / height
+        boxes[:, 2] = boxes[:, 2] * 224 / width
+        boxes[:, 3] = boxes[:, 3] * 224 / height
+        
+
+        # if not self._use_bgr:
+        # Convert image format from BGR to RGB.
+        imgs = imgs[:, [2, 1, 0], ...]
+
+        return imgs, boxes, caps, object_class
 
     def __getitem__(self, idx):
 
-        data_point = self.database[idx]
+        data_point = self.dataset[idx]
 
         # 1. load and preprocess frames : done
         # 2. bounding boxes per frames : 
@@ -142,8 +206,14 @@ class STDC(Dataset):
 
         # we have to pass a tensor that contains self.sampling_count * 2 + 1 number of images
 
-        context_frames_preprocessed = torch.stack([self.load_and_preprocess_frames(frame_path) \ 
-                                    for frame_path in data_point['context_frames'])
+        context_frames = stdc_helper.retry_load_images(
+                            [frame_path for frame_path in data_point['context_frames']]
+                        )
 
+        context_frames_preprocessed, boxes, caps, class_labels = self.preprocess_frames_and_boxes(
+                                                            context_frames,
+                                                            data_point['captions']
+                                                    )
 
-        # 
+        return context_frames_preprocessed, boxes, caps, class_labels, data_point['keyframe_index']
+
