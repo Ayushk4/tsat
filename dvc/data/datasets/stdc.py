@@ -215,5 +215,6 @@ class STDC(Dataset):
                                                             data_point['captions']
                                                     )
 
-        return context_frames_preprocessed, boxes, caps, class_labels, data_point['keyframe_index']
+        return context_frames_preprocessed, data_point['keyframe_index'], \
+                {'boxes': boxes, 'caps': caps, 'class_labels': class_labels}
 
