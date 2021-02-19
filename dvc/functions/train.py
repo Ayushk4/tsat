@@ -100,6 +100,7 @@ def train_net(args, config):
 
     else:
         # set CUDA device in env variables
+        world_size = 1
         config.GPUS = [*range(len((config.GPUS).split(',')))] if args.data_parallel else str(0)
         print(f"config.GPUS = {config.GPUS}")
 
@@ -156,7 +157,7 @@ def train_net(args, config):
     epoch_end_callbacks = [Checkpoint(config, val_metrics)]
 
     # set up the criterion
-    criterion = eval(config.CRITERION.CRITERION_NAME)(config.CRITERION)
+    criterion = eval(config.CRITERION.CRITERION_NAME)(config.CRITERION, args.dist, world_size)
     #criterion = criterion.to(model.device)
 
     # At last call the training function from trainer
