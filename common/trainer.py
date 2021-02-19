@@ -106,7 +106,7 @@ def train(config,
             # transfer data to GPU
             frames, keyframes_idx, frame_pad_masks, targets = to_cuda(batch)
 
-            outputs = net(frames, keyframes_ixs, pad_masks)
+            outputs = net(frames, keyframes_idx, frame_pad_masks)
             #loss, accuracy = calculate_loss_and_accuracy(config.TASK_TYPE, outputs, labels)
             metric_values = criterion(outputs, targets)
 
