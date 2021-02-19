@@ -30,6 +30,7 @@ from dvc.data.build import make_dataloader, build_dataset
 #--------- Imports from common ----------
 #----------------------------------------
 from common.utils.optim import *
+from common.utils.losses import *
 from common.utils.load import smart_model_load
 from common.utils.misc import summary_parameters
 from common.trainer import train
@@ -154,6 +155,10 @@ def train_net(args, config):
     # epoch end callbacks
     epoch_end_callbacks = [Checkpoint(config, val_metrics)]
 
+    # set up the criterion
+    criterion = eval(config.CRITERION.CRITERION_NAME)(config.CRITERION)
+    #criterion = criterion.to(model.device)
+
     # At last call the training function from trainer
     train(config=config,
         net=model,
@@ -162,6 +167,7 @@ def train_net(args, config):
         train_metrics=train_metrics,
         val_loader=val_loader,
         val_metrics=val_metrics,
+        criterion=criterion,
         rank=rank if args.dist else None,
         batch_end_callbacks=batch_end_callbacks,
         epoch_end_callbacks=epoch_end_callbacks)

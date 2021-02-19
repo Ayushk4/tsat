@@ -53,6 +53,10 @@ def to_cuda(batch):
             for j, o in enumerate(batch[i]):
                 if isinstance(batch[i], torch.Tensor):
                     batch[i][j] = o.cuda(non_blocking=True)
+        elif isinstance(batch[i], dict):
+            for k, v in batch[i].items():
+                if isinstance(batch[i][k], torch.Tensor):
+                    batch[i][k] = v.cuda(non_blocking=True)
 
     return batch
 
@@ -63,6 +67,7 @@ def train(config,
           train_metrics,
           val_loader,
           val_metrics,
+          criterion,
           rank,
           batch_end_callbacks,
           epoch_end_callbacks,
@@ -91,6 +96,7 @@ def train(config,
 
         # set net to train mode
         net.train()
+        criterion.train(0)
 
         # init end time
         end_time = time.time()
@@ -98,14 +104,15 @@ def train(config,
         # training
         for nbatch, batch in enumerate(train_loader):
             # transfer data to GPU
-            frames, keyframes_ixs, pad_masks, labels = to_cuda(batch)
+            frames, keyframes_idx, frame_pad_masks, targets = to_cuda(batch)
 
             outputs = net(frames, keyframes_ixs, pad_masks)
-            loss, accuracy = calculate_loss_and_accuracy(config.TASK_TYPE, outputs, labels)
+            #loss, accuracy = calculate_loss_and_accuracy(config.TASK_TYPE, outputs, labels)
+            metric_values = criterion(outputs, targets)
 
             # store the obtained metrics
-            train_metrics.store('training_loss', loss.item(), 'Loss')
-            train_metrics.store('training_accuracy', accuracy, 'Accuracy')
+            for k, v in metric_values.items():
+                train_metrics.store(f'training_{k}', v[0], v[1])
 
             # clear the gradients
             optimizer.zero_grad()
