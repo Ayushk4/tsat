@@ -176,8 +176,11 @@ class STDC(Dataset):
         object_class = torch.LongTensor([d['type'] for d in captions_with_bb])
 
         # Captions randomly sample one for each
-        sample_one_caps = lambda x: torch.LongTensor(x[np.random.choice(x.shape[0], size=1)[0], :])
-        caps = torch.stack([sample_one_caps(np.asarray(d['caps'])) for d in captions_with_bb])
+        if self.split.lower() == 'train':
+            sample_one_caps = lambda x: torch.LongTensor(x[np.random.choice(x.shape[0], size=1)[0], :])
+            caps = torch.stack([sample_one_caps(np.asarray(d['caps'])) for d in captions_with_bb])
+        else:
+            caps = torch.stack([d['caps'] for d in captions_with_bb])
 
         assert caps.shape[0] == boxes.shape[0]
 
@@ -215,6 +218,6 @@ class STDC(Dataset):
                                                             data_point['captions']
                                                     )
 
-        return context_frames_preprocessed, data_point['keyframe_index'], \
-                {'boxes': boxes, 'caps': caps, 'class_labels': class_labels}
+        return context_frames_preprocessed, boxes, caps, class_labels, data_point['keyframe_index'], self.split.lower() == "train"
+                
 
