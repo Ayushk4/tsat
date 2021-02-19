@@ -104,9 +104,9 @@ def train(config,
         # training
         for nbatch, batch in enumerate(train_loader):
             # transfer data to GPU
-            frames, keyframes_idx, frame_pad_masks, targets = to_cuda(batch)
+            frames, keyframes_idx, targets = to_cuda(batch)
 
-            outputs = net(frames, keyframes_idx, frame_pad_masks)
+            outputs = net(frames, keyframes_idx, targets)
             #loss, accuracy = calculate_loss_and_accuracy(config.TASK_TYPE, outputs, labels)
             metric_values = criterion(outputs, targets)
 
